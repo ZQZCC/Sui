@@ -44,6 +44,7 @@ public class SuiConfigManager extends ConfigManager {
     private static final String SHELL_CONFIG_FILENAME = "sui_uids.txt";
     private static final String SHELL_DIR_PREFIX = "sui_shell_";
     private static final long SHELL_SYNC_DEBOUNCE_MS = 200;
+    private static final long SHELL_SYNC_WAIT_TIMEOUT_MS = 5000;
     private static final HandlerThread SHELL_SYNC_THREAD = new HandlerThread("sui-shell-sync");
     private static final Handler SHELL_SYNC_HANDLER;
 
@@ -246,6 +247,27 @@ public class SuiConfigManager extends ConfigManager {
             }
         } catch (Throwable e) {
             LOGGER.e(e, "sync uids to shell");
+        }
+    }
+
+    public void syncUidsToShellFileNow() {
+        if (SuiService.isShellMode()) return;
+        SHELL_SYNC_HANDLER.removeCallbacks(syncUidsToShellFileRunnable);
+        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        SHELL_SYNC_HANDLER.post(() -> {
+            try {
+                syncUidsToShellFile();
+            } finally {
+                latch.countDown();
+            }
+        });
+        try {
+            if (!latch.await(SHELL_SYNC_WAIT_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                LOGGER.w("syncUidsToShellFileNow timed out after %d ms", SHELL_SYNC_WAIT_TIMEOUT_MS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.w(e, "syncUidsToShellFileNow interrupted");
         }
     }
 

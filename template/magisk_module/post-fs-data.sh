@@ -58,12 +58,12 @@ elif [  "$KERNELPATCH" = true  ]; then
   kp_major_char=${KERNELPATCH_VERSION:0:1}
   kp_minor_patch=${KERNELPATCH_VERSION:1}
 
-  kp_major=$(( $(printf '%d' "'$major_char") - 97 ))
-  kp_minor=$(( 10 + ${minor_patch:0:1} ))
-  kp_patch=${minor_patch:1}
+  kp_major=$(( $(printf '%d' "'$kp_major_char") - 97 ))
+  kp_minor=$(( 10 + ${kp_minor_patch:0:1} ))
+  kp_patch=${kp_minor_patch:1}
 
   log -p i -t "Sui" "APatch version $APATCH_VER ($APATCH_VER_CODE)"
-  log -p i -t "Sui" "KernelPatch version $major.$minor.$patch"
+  log -p i -t "Sui" "KernelPatch version $kp_major.$kp_minor.$kp_patch"
   apply_sepolicy() {
     apd sepolicy apply "$1"
   }

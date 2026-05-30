@@ -48,6 +48,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import moe.shizuku.server.IShizukuApplication;
@@ -195,8 +196,164 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     private IShizukuApplication systemUiApplication;
 
     private final Object managerBinderLock = new Object();
+    private final Object pendingPermissionLock = new Object();
     private final Logger flog = new Logger("Sui", "/cache/sui.log");
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Map<String, Integer> pendingPermissionConfirmations = new HashMap<>();
+
+    private static String buildPermissionRequestKey(int requestUid, int requestPid, int requestCode) {
+        return requestUid + ":" + requestPid + ":" + requestCode;
+    }
+
+    private void markPendingPermissionConfirmation(int requestUid, int requestPid, int requestCode) {
+        synchronized (pendingPermissionLock) {
+            String key = buildPermissionRequestKey(requestUid, requestPid, requestCode);
+            pendingPermissionConfirmations.merge(key, 1, Integer::sum);
+        }
+    }
+
+    private boolean consumePendingPermissionConfirmation(int requestUid, int requestPid, int requestCode) {
+        synchronized (pendingPermissionLock) {
+            String key = buildPermissionRequestKey(requestUid, requestPid, requestCode);
+            Integer count = pendingPermissionConfirmations.get(key);
+            if (count == null || count <= 0) {
+                return false;
+            }
+            if (count == 1) {
+                pendingPermissionConfirmations.remove(key);
+            } else {
+                pendingPermissionConfirmations.put(key, count - 1);
+            }
+            return true;
+        }
+    }
+
+    private void removePendingPermissionConfirmationsForUid(int uid) {
+        String prefix = uid + ":";
+        synchronized (pendingPermissionLock) {
+            java.util.List<String> toRemove = new java.util.ArrayList<>();
+            for (String key : pendingPermissionConfirmations.keySet()) {
+                if (key.startsWith(prefix)) {
+                    toRemove.add(key);
+                }
+            }
+            for (String key : toRemove) {
+                pendingPermissionConfirmations.remove(key);
+            }
+        }
+    }
+
+    private void finishPermissionConfirmation(
+            int requestUid,
+            int requestPid,
+            int requestCode,
+            boolean allowed,
+            boolean onetime,
+            boolean isShell,
+            boolean consumePending) {
+        if (consumePending && !consumePendingPermissionConfirmation(requestUid, requestPid, requestCode)) {
+            LOGGER.w(
+                    "drop stale or forged permission result: uid=%d, pid=%d, requestCode=%d",
+                    requestUid, requestPid, requestCode);
+            return;
+        }
+
+        LOGGER.i(
+                "dispatchPermissionConfirmationResult: uid=%d, pid=%d, requestCode=%d, allowed=%s, onetime=%s, isShell=%s",
+                requestUid,
+                requestPid,
+                requestCode,
+                Boolean.toString(allowed),
+                Boolean.toString(onetime),
+                Boolean.toString(isShell));
+
+        List<ClientRecord> records = clientManager.findClients(requestUid);
+        if (records.isEmpty()) {
+            LOGGER.w("dispatchPermissionConfirmationResult: no client for uid %d was found", requestUid);
+        } else {
+            for (ClientRecord record : records) {
+                record.allowed = allowed;
+                if (record.pid == requestPid) {
+                    record.dispatchRequestPermissionResult(requestCode, allowed);
+                }
+            }
+        }
+
+        String key = requestUid + ":" + requestPid;
+        DelegatedPermissionCallback callback = delegatedPermissionCallbacks.get(key);
+        if (callback != null) {
+            removeDelegatedPermissionCallback(key, callback);
+            android.os.Parcel cbData = android.os.Parcel.obtain();
+            try {
+                cbData.writeInt(allowed ? 1 : 0);
+                callback.binder.transact(1, cbData, null, android.os.IBinder.FLAG_ONEWAY);
+            } catch (Throwable e) {
+                LOGGER.w(e, "Failed to call delegated permission callback");
+            } finally {
+                cbData.recycle();
+            }
+        }
+
+        if (!onetime) {
+            int flag =
+                    allowed ? (isShell ? SuiConfig.FLAG_ALLOWED_SHELL : SuiConfig.FLAG_ALLOWED) : SuiConfig.FLAG_DENIED;
+            configManager.update(requestUid, SuiConfig.MASK_PERMISSION, flag);
+
+            if (!shellMode && isShell) {
+                flushShellRoutingState();
+            }
+
+            if (!shellMode) {
+                syncUidsToSystemServer();
+            }
+
+            if (isShell) {
+                for (ClientRecord record : records) {
+                    if (record.packageName != null) {
+                        try {
+                            LOGGER.i("Force stopping and restarting %s to re-acquire shell binder", record.packageName);
+                            long id = android.os.Binder.clearCallingIdentity();
+                            try {
+                                ActivityManagerApis.forceStopPackageNoThrow(
+                                        record.packageName, UserHandleCompat.getUserId(requestUid));
+                                LOGGER.i("Auto-restarting %s dynamically", record.packageName);
+                                AppLaunchUtils.startAppAsUser(
+                                        record.packageName, UserHandleCompat.getUserId(requestUid));
+                            } finally {
+                                android.os.Binder.restoreCallingIdentity(id);
+                            }
+                        } catch (Throwable e) {
+                            LOGGER.w(e, "Failed to force stop/restart package %s", record.packageName);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isTrustedPermissionDelegateCaller(int callingUid) {
+        if (callingUid == 0 || callingUid == 2000) {
+            return true;
+        }
+        return callingUid == systemUiUid;
+    }
+
+    private void syncUidsToSystemServer() {
+        BridgeServiceClient.syncUids(
+                configManager.getHiddenUids(),
+                getRootUidsWithSystem(),
+                configManager.getDeniedUids(),
+                configManager.getShellUids(),
+                configManager.getDefaultPermissionFlags());
+    }
+
+    private void flushShellRoutingState() {
+        if (shellMode) {
+            return;
+        }
+        configManager.syncUidsToShellFileNow();
+        reloadShellServerConfig();
+    }
 
     private final class DelegatedPermissionCallback implements IBinder.DeathRecipient, Runnable {
 
@@ -303,12 +460,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                         // The shell server must NOT call syncUids, or it would overwrite
                         // the root server's rootUids/shellUids with its empty config.
                         if (!shellMode) {
-                            BridgeServiceClient.syncUids(
-                                    configManager.getHiddenUids(),
-                                    getRootUidsWithSystem(),
-                                    configManager.getDeniedUids(),
-                                    configManager.getShellUids(),
-                                    configManager.getDefaultPermissionFlags());
+                            syncUidsToSystemServer();
                         }
                     } else {
                         LOGGER.w("FAILURE: No response from bridge. Retrying in 1s...");
@@ -479,11 +631,13 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     public void showPermissionConfirmation(
             int requestCode, @NonNull ClientRecord clientRecord, int callingUid, int callingPid, int userId) {
         if (systemUiApplication != null) {
+            markPendingPermissionConfirmation(callingUid, callingPid, requestCode);
             try {
                 systemUiApplication.showPermissionConfirmation(
                         callingUid, callingPid, clientRecord.packageName, requestCode);
             } catch (Throwable e) {
                 LOGGER.w(e, "showPermissionConfirmation");
+                finishPermissionConfirmation(callingUid, callingPid, requestCode, false, true, false, true);
             }
         } else if (shellMode) {
             LOGGER.i("Delegating showPermissionConfirmation to root server");
@@ -491,6 +645,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                     clientManager, requestCode, clientRecord.packageName, callingUid, callingPid);
         } else {
             LOGGER.e("manager is null");
+            finishPermissionConfirmation(callingUid, callingPid, requestCode, false, true, false, false);
         }
     }
 
@@ -513,16 +668,10 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     public void dispatchPermissionConfirmationResult(int requestUid, int requestPid, int requestCode, Bundle data) {
         int callingUid = Binder.getCallingUid();
         if (callingUid != systemUiUid) {
-            if (callingUid == 1000) {
-                LOGGER.w(
-                        "dispatchPermissionConfirmationResult: callingUid=%d matches SYSTEM_UID (1000) but not systemUiUid=%d. Allowing as fallback.",
-                        callingUid, systemUiUid);
-            } else {
-                LOGGER.w(
-                        "dispatchPermissionConfirmationResult is allowed to be called only from the manager (callingUid=%d, systemUiUid=%d)",
-                        callingUid, systemUiUid);
-                return;
-            }
+            LOGGER.w(
+                    "dispatchPermissionConfirmationResult is allowed to be called only from the manager (callingUid=%d, systemUiUid=%d)",
+                    callingUid, systemUiUid);
+            return;
         }
 
         if (data == null) {
@@ -532,83 +681,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         boolean allowed = data.getBoolean(REQUEST_PERMISSION_REPLY_ALLOWED);
         boolean onetime = data.getBoolean(REQUEST_PERMISSION_REPLY_IS_ONETIME);
         boolean isShell = data.getBoolean(ShizukuApiConstants.REQUEST_PERMISSION_REPLY_IS_SHELL);
-
-        LOGGER.i(
-                "dispatchPermissionConfirmationResult: uid=%d, pid=%d, requestCode=%d, allowed=%s, onetime=%s, isShell=%s",
-                requestUid,
-                requestPid,
-                requestCode,
-                Boolean.toString(allowed),
-                Boolean.toString(onetime),
-                Boolean.toString(isShell));
-
-        List<ClientRecord> records = clientManager.findClients(requestUid);
-        if (records.isEmpty()) {
-            LOGGER.w("dispatchPermissionConfirmationResult: no client for uid %d was found", requestUid);
-        } else {
-            for (ClientRecord record : records) {
-                record.allowed = allowed;
-                if (record.pid == requestPid) {
-                    record.dispatchRequestPermissionResult(requestCode, allowed);
-                }
-            }
-        }
-
-        String key = requestUid + ":" + requestPid;
-        DelegatedPermissionCallback callback = delegatedPermissionCallbacks.get(key);
-        if (callback != null) {
-            removeDelegatedPermissionCallback(key, callback);
-            android.os.Parcel cbData = android.os.Parcel.obtain();
-            try {
-                cbData.writeInt(allowed ? 1 : 0);
-                callback.binder.transact(1, cbData, null, android.os.IBinder.FLAG_ONEWAY);
-            } catch (Throwable e) {
-                LOGGER.w(e, "Failed to call delegated permission callback");
-            } finally {
-                cbData.recycle();
-            }
-        }
-
-        if (!onetime) {
-            int flag =
-                    allowed ? (isShell ? SuiConfig.FLAG_ALLOWED_SHELL : SuiConfig.FLAG_ALLOWED) : SuiConfig.FLAG_DENIED;
-            configManager.update(requestUid, SuiConfig.MASK_PERMISSION, flag);
-
-            // Push updated UID lists to system_server so BridgeService routes correctly
-            if (!shellMode) {
-                BridgeServiceClient.syncUids(
-                        configManager.getHiddenUids(),
-                        getRootUidsWithSystem(),
-                        configManager.getDeniedUids(),
-                        configManager.getShellUids(),
-                        configManager.getDefaultPermissionFlags());
-            }
-
-            // Force kill the app if it requested permission and was granted Shell.
-            // When an unconfigured app requests a binder, it drops into the root binder by fallback.
-            // If the user grants shell, we must kill the app so its next startup acquires the true shell binder.
-            if (isShell) {
-                for (ClientRecord record : records) {
-                    if (record.packageName != null) {
-                        try {
-                            LOGGER.i("Force stopping and restarting %s to re-acquire shell binder", record.packageName);
-                            long id = android.os.Binder.clearCallingIdentity();
-                            try {
-                                ActivityManagerApis.forceStopPackageNoThrow(
-                                        record.packageName, UserHandleCompat.getUserId(requestUid));
-                                LOGGER.i("Auto-restarting %s dynamically", record.packageName);
-                                AppLaunchUtils.startAppAsUser(
-                                        record.packageName, UserHandleCompat.getUserId(requestUid));
-                            } finally {
-                                android.os.Binder.restoreCallingIdentity(id);
-                            }
-                        } catch (Throwable e) {
-                            LOGGER.w(e, "Failed to force stop/restart package %s", record.packageName);
-                        }
-                    }
-                }
-            }
-        }
+        finishPermissionConfirmation(requestUid, requestPid, requestCode, allowed, onetime, isShell, true);
     }
 
     private int getFlagsForUidInternal(int uid, int mask) {
@@ -641,8 +714,6 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         if (oldEffectiveEntry != null) {
             oldEffectiveFlags = oldEffectiveEntry.flags & SuiConfig.MASK_PERMISSION;
         }
-        boolean wasHidden = (oldEffectiveFlags & SuiConfig.FLAG_HIDDEN) != 0;
-
         configManager.update(uid, mask, value);
 
         if ((mask & SuiConfig.MASK_PERMISSION) != 0) {
@@ -676,13 +747,14 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 }
             }
 
+            if (!shellMode
+                    && ((oldEffectiveFlags & SuiConfig.FLAG_ALLOWED_SHELL) != 0
+                            || (newEffectiveFlags & SuiConfig.FLAG_ALLOWED_SHELL) != 0)) {
+                flushShellRoutingState();
+            }
+
             // Always sync UIDs to system_server when permission flags change
-            BridgeServiceClient.syncUids(
-                    configManager.getHiddenUids(),
-                    getRootUidsWithSystem(),
-                    configManager.getDeniedUids(),
-                    configManager.getShellUids(),
-                    configManager.getDefaultPermissionFlags());
+            syncUidsToSystemServer();
         }
     }
 
@@ -702,12 +774,11 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         if (Intent.ACTION_PACKAGE_REMOVED.equals(action) && uid > 0 && !replacing) {
             LOGGER.i("uid %d is removed", uid);
             configManager.remove(uid);
-            BridgeServiceClient.syncUids(
-                    configManager.getHiddenUids(),
-                    getRootUidsWithSystem(),
-                    configManager.getDeniedUids(),
-                    configManager.getShellUids(),
-                    configManager.getDefaultPermissionFlags());
+            removePendingPermissionConfirmationsForUid(uid);
+            if (!shellMode) {
+                flushShellRoutingState();
+            }
+            syncUidsToSystemServer();
         } else if (Intent.ACTION_PACKAGE_FULLY_REMOVED.equals(action) && !replacing) {
             Uri uri = intent.getData();
             String packageName = (uri != null) ? uri.getSchemeSpecificPart() : null;
@@ -811,6 +882,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
 
             try {
+                enforceManagerPermission("requestPinnedShortcut");
                 if (systemUiApplication != null) {
                     systemUiApplication
                             .asBinder()
@@ -840,16 +912,13 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 }
                 int oldDefaultMode = configManager.getDefaultPermissionFlags();
                 configManager.setDefaultPermissionFlags(targetMode);
-                if (!shellMode && targetMode == SuiConfig.FLAG_ALLOWED_SHELL) {
-                    reloadShellServerConfig();
+                if (!shellMode
+                        && (oldDefaultMode == SuiConfig.FLAG_ALLOWED_SHELL
+                                || targetMode == SuiConfig.FLAG_ALLOWED_SHELL)) {
+                    flushShellRoutingState();
                 }
                 if (!shellMode) {
-                    BridgeServiceClient.syncUids(
-                            configManager.getHiddenUids(),
-                            getRootUidsWithSystem(),
-                            configManager.getDeniedUids(),
-                            configManager.getShellUids(),
-                            configManager.getDefaultPermissionFlags());
+                    syncUidsToSystemServer();
                     if (oldDefaultMode != targetMode
                             && (oldDefaultMode == SuiConfig.FLAG_ALLOWED_SHELL
                                     || targetMode == SuiConfig.FLAG_ALLOWED_SHELL)) {
@@ -917,11 +986,31 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         }
         if (code == ServerConstants.BINDER_TRANSACTION_requestPermissionFromShell) {
             data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+            int callingUid = Binder.getCallingUid();
+            if (!isTrustedPermissionDelegateCaller(callingUid)) {
+                LOGGER.w(
+                        "requestPermissionFromShell is allowed only from trusted delegates (callingUid=%d)",
+                        callingUid);
+                return false;
+            }
             int requestCode = data.readInt();
             String packageName = data.readString();
             int reqUid = data.readInt();
             int reqPid = data.readInt();
             android.os.IBinder callback = data.readStrongBinder();
+
+            List<String> packages = PackageManagerApis.getPackagesForUidNoThrow(reqUid);
+            if (packageName == null || !packages.contains(packageName)) {
+                LOGGER.w(
+                        "requestPermissionFromShell rejected: package %s does not belong to uid %d",
+                        packageName, reqUid);
+                return false;
+            }
+
+            if (reqPid <= 0) {
+                LOGGER.w("requestPermissionFromShell rejected: invalid pid %d for uid %d", reqPid, reqUid);
+                return false;
+            }
 
             String key = reqUid + ":" + reqPid;
             if (callback != null) {

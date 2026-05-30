@@ -64,8 +64,11 @@ public class ManagerProcess {
                     "showPermissionConfirmation: %d %d %s %d", requestUid, requestPid, requestPackageName, requestCode);
 
             if (suiApk == null) {
-                LOGGER.e("Cannot load apk");
-                return;
+                throw new IllegalStateException("Cannot load apk");
+            }
+
+            if (suiApk.getSuiRequestPermissionDialogConstructor() == null) {
+                throw new IllegalStateException("Cannot load request permission dialog constructor");
             }
 
             try {
@@ -78,7 +81,7 @@ public class ManagerProcess {
                                 requestPackageName,
                                 requestCode);
             } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                LOGGER.e(e, "showPermissionConfirmation");
+                throw new IllegalStateException("Cannot show permission confirmation", e);
             }
         }
 

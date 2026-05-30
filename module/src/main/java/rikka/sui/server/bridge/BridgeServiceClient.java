@@ -136,10 +136,10 @@ public class BridgeServiceClient {
             return;
         }
 
-        Parcel data = Parcel.obtain();
-        Parcel reply = Parcel.obtain();
         boolean res = false;
         for (int i = 0; i < 3; i++) {
+            Parcel data = Parcel.obtain();
+            Parcel reply = Parcel.obtain();
             try {
                 data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
                 data.writeInt(BridgeConstants.ACTION_SEND_BINDER);

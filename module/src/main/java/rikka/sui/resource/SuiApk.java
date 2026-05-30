@@ -57,6 +57,10 @@ public class SuiApk {
         try {
             apk = new SuiApk();
             apk.loadSuiActivity();
+            if (apk.getSuiActivityClass() == null || apk.getSuiActivityConstructor() == null) {
+                LOGGER.e("Cannot initialize SuiActivity from %s", apk.apkPath);
+                return null;
+            }
             return apk;
         } catch (Throwable e) {
             Log.e("SuiApk", Log.getStackTraceString(e));
@@ -69,6 +73,11 @@ public class SuiApk {
         try {
             apk = new SuiApk();
             apk.loadSuiRequestPermissionDialog();
+            if (apk.getSuiRequestPermissionDialogClass() == null
+                    || apk.getSuiRequestPermissionDialogConstructor() == null) {
+                LOGGER.e("Cannot initialize SuiRequestPermissionDialog from %s", apk.apkPath);
+                return null;
+            }
             return apk;
         } catch (Throwable e) {
             Log.e("SuiApk", Log.getStackTraceString(e));
