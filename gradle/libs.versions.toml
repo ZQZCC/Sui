@@ -1,8 +1,6 @@
 [versions]
 agp = "9.2.1"
 kotlin = "2.3.21"
-autoresconfig = "1.2.2"
-materialthemebuilder = "1.5.1"
 hidden-api = "4.4.0"
 refine = "4.4.0"
 libcxx = "29.0.14206865"
@@ -35,8 +33,6 @@ support-annotations = "28.0.0"
 hidden-compat = { group = "dev.rikka.hidden", name = "compat", version.ref = "hidden-api" }
 hidden-stub = { group = "dev.rikka.hidden", name = "stub", version.ref = "hidden-api" }
 refine-runtime = { group = "dev.rikka.tools.refine", name = "runtime", version.ref = "refine" }
-refine-annotation = { group = "dev.rikka.tools.refine", name = "annotation", version.ref = "refine" }
-refine-annotation-processor = { group = "dev.rikka.tools.refine", name = "annotation-processor", version.ref = "refine" }
 libcxx = { group = "org.lsposed.libcxx", name = "libcxx", version.ref = "libcxx" }
 nativehelper = { group = "dev.rikka.ndk.thirdparty", name = "nativehelper", version.ref = "nativehelper" }
 parcelablelist = { group = "dev.rikka.rikkax.parcelablelist", name = "parcelablelist", version.ref = "parcelablelist" }
@@ -71,7 +67,5 @@ support-annotations = { group = "com.android.support", name = "support-annotatio
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-autoresconfig = { id = "dev.rikka.tools.autoresconfig", version.ref = "autoresconfig" }
-materialthemebuilder = { id = "dev.rikka.tools.materialthemebuilder", version.ref = "materialthemebuilder" }
 refine = { id = "dev.rikka.tools.refine", version.ref = "refine" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
