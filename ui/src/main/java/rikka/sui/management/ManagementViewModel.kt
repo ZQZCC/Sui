@@ -158,14 +158,12 @@ class ManagementViewModel : ViewModel() {
 
                 val result = BridgeServiceClient.getApplications(-1, showOnlyShizukuApps)
                 if (result.isNotEmpty()) {
+                    val labelDispatcher = Dispatchers.IO.limitedParallelism(4)
                     coroutineScope {
                         result.mapNotNull { app ->
-                            if (app?.packageInfo?.applicationInfo != null) {
-                                async(Dispatchers.IO) {
-                                    app.label = AppLabelCache.loadLabel(pm, app.packageInfo.applicationInfo!!)
-                                }
-                            } else {
-                                null
+                            val applicationInfo = app?.packageInfo?.applicationInfo ?: return@mapNotNull null
+                            async(labelDispatcher) {
+                                app.label = AppLabelCache.loadLabel(pm, applicationInfo)
                             }
                         }.awaitAll()
                     }

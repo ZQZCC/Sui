@@ -131,7 +131,27 @@ public class AppLaunchUtils {
                             args[i] = null; // resolvedType, resultWho, callingFeatureId
                         }
                     } else {
-                        args[i] = null; // IApplicationThread, IBinder, ProfilerInfo, Bundle
+                        if (pType.isPrimitive()) {
+                            if (pType == boolean.class) {
+                                args[i] = false;
+                            } else if (pType == float.class) {
+                                args[i] = 0f;
+                            } else if (pType == double.class) {
+                                args[i] = 0d;
+                            } else if (pType == long.class) {
+                                args[i] = 0L;
+                            } else if (pType == char.class) {
+                                args[i] = '\0';
+                            } else if (pType == byte.class) {
+                                args[i] = (byte) 0;
+                            } else if (pType == short.class) {
+                                args[i] = (short) 0;
+                            } else {
+                                args[i] = 0;
+                            }
+                        } else {
+                            args[i] = null; // IApplicationThread, IBinder, ProfilerInfo, Bundle
+                        }
                     }
                 }
                 Object res = targetMethod.invoke(iActivityManager, args);
