@@ -102,11 +102,7 @@ spotless {
         target "**/src/*/kotlin/**/*.kt", "**/src/*/java/**/*.kt"
         targetExclude "**/build/**"
         ktlint().editorConfigOverride([
-                "standard:backing-property-naming": "disabled",
-                "standard:no-wildcard-imports": "disabled",
-                "standard:property-naming": "disabled",
-                "standard:max-line-length": "disabled",
-                "standard:comment-wrapping": "disabled"
+                "ktlint_standard_max-line-length": "disabled"
         ])
     }
     format "cpp", {
