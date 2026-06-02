@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import rikka.sui.shortcut.ShortcutConstants;
+import rikka.sui.util.SettingsPackages;
 
 @TargetApi(Build.VERSION_CODES.O)
 public class Uninstaller {
@@ -66,11 +67,12 @@ public class Uninstaller {
         List<String> list = new ArrayList<>();
         list.add(ShortcutConstants.SHORTCUT_ID);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Refine.<IShortcutServiceV31>unsafeCast(shortcutService)
-                    .removeDynamicShortcuts("com.android.settings", list, 0);
-        } else {
-            shortcutService.removeDynamicShortcuts("com.android.settings", list, 0);
+        for (String packageName : SettingsPackages.SETTINGS_CANDIDATES) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Refine.<IShortcutServiceV31>unsafeCast(shortcutService).removeDynamicShortcuts(packageName, list, 0);
+            } else {
+                shortcutService.removeDynamicShortcuts(packageName, list, 0);
+            }
         }
     }
 

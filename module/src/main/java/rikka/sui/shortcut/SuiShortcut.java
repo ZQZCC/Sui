@@ -45,13 +45,14 @@ import android.os.Build;
 import android.provider.Settings;
 import java.util.ArrayList;
 import java.util.List;
+import rikka.sui.util.SettingsPackages;
 
 public class SuiShortcut {
 
-    private static final String PACKAGE_NAME = "com.android.settings";
     private static final int FLAGS = Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK;
 
     public static Intent getIntent(Context context, boolean requiresStandardLaunchMode, String token) {
+        String packageName = SettingsPackages.getPreferredSettingsPackage();
         String[] actions = new String[] {
             Settings.ACTION_WIFI_SETTINGS,
             Settings.ACTION_NETWORK_OPERATOR_SETTINGS,
@@ -63,7 +64,7 @@ public class SuiShortcut {
             Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
         };
 
-        Intent intent = new Intent("null").setPackage(PACKAGE_NAME);
+        Intent intent = new Intent("null").setPackage(packageName);
         PackageManager pm = context.getPackageManager();
 
         for (String action : actions) {
@@ -95,7 +96,7 @@ public class SuiShortcut {
                 intent = getIntent(context, false, token);
             } else {
                 LOGGER.w("Use launch intent for Sui shortcut");
-                intent = pm.getLaunchIntentForPackage(PACKAGE_NAME);
+                intent = pm.getLaunchIntentForPackage(packageName);
             }
         }
 

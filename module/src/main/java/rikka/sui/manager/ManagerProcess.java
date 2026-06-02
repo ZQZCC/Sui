@@ -43,6 +43,7 @@ import rikka.sui.resource.SuiApk;
 import rikka.sui.server.ServerConstants;
 import rikka.sui.shortcut.SuiShortcut;
 import rikka.sui.util.BridgeServiceClient;
+import rikka.sui.util.SettingsPackages;
 
 public class ManagerProcess {
 
@@ -94,7 +95,7 @@ public class ManagerProcess {
                         if (context != null) {
                             LOGGER.i("Sending shortcut creation broadcast...");
                             Intent intent = new Intent("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT");
-                            intent.setPackage("com.android.settings");
+                            intent.setPackage(SettingsPackages.getPreferredSettingsPackage());
                             context.sendBroadcast(intent);
                         }
                     } catch (Throwable e) {

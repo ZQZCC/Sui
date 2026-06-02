@@ -66,6 +66,7 @@ import rikka.sui.util.AppLaunchUtils;
 import rikka.sui.util.BridgeConstants;
 import rikka.sui.util.Logger;
 import rikka.sui.util.OsUtils;
+import rikka.sui.util.SettingsPackages;
 import rikka.sui.util.UserHandleCompat;
 
 @OptIn(markerClass = androidx.core.os.BuildCompat.PrereleaseSdkCheck.class)
@@ -186,7 +187,6 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     }
 
     private static final String MANAGER_APPLICATION_ID = "com.android.systemui";
-    private static final String SETTINGS_APPLICATION_ID = "com.android.settings";
 
     private final SuiClientManager clientManager;
     private final SuiConfigManager configManager;
@@ -409,15 +409,20 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     }
 
     private int waitForPackage(String packageName, boolean forever) {
-        int uid;
+        return waitForPackage(new String[] {packageName}, forever);
+    }
+
+    private int waitForPackage(String[] packageNames, boolean forever) {
         while (true) {
-            ApplicationInfo ai = PackageManagerApis.getApplicationInfoNoThrow(packageName, 0, 0);
-            if (ai != null) {
-                uid = ai.uid;
-                break;
+            for (String packageName : packageNames) {
+                ApplicationInfo ai = PackageManagerApis.getApplicationInfoNoThrow(packageName, 0, 0);
+                if (ai != null) {
+                    LOGGER.i("uid for %s is %d", packageName, ai.uid);
+                    return ai.uid;
+                }
             }
 
-            LOGGER.w("can't find %s, wait 1s", packageName);
+            LOGGER.w("can't find %s, wait 1s", java.util.Arrays.toString(packageNames));
 
             if (!forever) return -1;
 
@@ -427,9 +432,15 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             } catch (InterruptedException ignored) {
             }
         }
+    }
 
-        LOGGER.i("uid for %s is %d", packageName, uid);
-        return uid;
+    private static boolean isSettingsPackageName(String packageName) {
+        for (String candidate : SettingsPackages.SETTINGS_CANDIDATES) {
+            if (candidate.equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int[] getRootUidsWithSystem() {
@@ -484,7 +495,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         userServiceManager = getUserServiceManager();
 
         systemUiUid = waitForPackage(MANAGER_APPLICATION_ID, true);
-        settingsUid = waitForPackage(SETTINGS_APPLICATION_ID, true);
+        settingsUid = waitForPackage(SettingsPackages.SETTINGS_CANDIDATES, true);
 
         // Skip root-only setup when running as shell server
         if (!shellMode) {
@@ -552,7 +563,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         }
 
         isManager = MANAGER_APPLICATION_ID.equals(requestPackageName);
-        isSettings = SETTINGS_APPLICATION_ID.equals(requestPackageName);
+        isSettings = isSettingsPackageName(requestPackageName);
 
         if (isManager) {
             IBinder binder = application.asBinder();
