@@ -23,7 +23,6 @@ import static rikka.sui.systemserver.SystemServerConstants.LOGGER;
 
 import android.content.Intent;
 import moe.shizuku.server.IShizukuService;
-import rikka.sui.server.SuiConfig;
 
 public class Bridge {
 
@@ -54,16 +53,6 @@ public class Bridge {
     }
 
     public static int getPermissionFlags(int uid) {
-        int flags = SystemProcess.getDefaultPermissionFlags();
-        if (SystemProcess.isHidden(uid)) {
-            flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_HIDDEN;
-        } else if (SystemProcess.isDenied(uid)) {
-            flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_DENIED;
-        } else if (SystemProcess.isRootAllowed(uid)) {
-            flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_ALLOWED;
-        } else if (SystemProcess.isShellAllowed(uid)) {
-            flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_ALLOWED_SHELL;
-        }
-        return flags & SuiConfig.MASK_PERMISSION;
+        return SystemProcess.getEffectivePermissionFlags(uid);
     }
 }
