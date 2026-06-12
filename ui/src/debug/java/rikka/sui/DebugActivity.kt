@@ -19,6 +19,7 @@
 package rikka.sui
 
 import android.os.Bundle
+import android.os.Build
 import android.util.TypedValue
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -37,12 +38,10 @@ class DebugActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_Sui)
-        val monetEnabled = MonetSettings.isMonetEnabled(this)
-        MonetSettings.syncFromServerAsync(this)
-        if (monetEnabled) {
-            com.google.android.material.color.DynamicColors
-                .applyToActivityIfAvailable(this)
+        if (MonetSettings.isMonetEnabled(this) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            theme.applyStyle(R.style.Theme_Sui_Monet, true)
         }
+        MonetSettings.syncFromServerAsync(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 

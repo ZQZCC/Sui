@@ -12,7 +12,7 @@ add_compile_options(-Werror=format -fdata-sections -ffunction-sections -fno-exce
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DNDEBUG)
     add_compile_options(-O3 -flto -fvisibility-inlines-hidden)
-    add_link_options(-flto -Wl,--exclude-libs,ALL -Wl,--gc-sections -Wl,--strip-all)
+    add_link_options(-flto -Wl,--exclude-libs,ALL -Wl,--gc-sections -Wl,--icf=safe -Wl,--build-id=none -Wl,--strip-all)
 else ()
     add_definitions(-DDEBUG)
     add_compile_options(-O0)
@@ -36,7 +36,7 @@ add_library(util STATIC
         util/socket.cpp)
 target_link_libraries(util cxx::cxx log nativehelper::nativehelper_header_only)
 
-add_definitions(-DZYGISK_MODULE_ID=${ZYGISK_MODULE_ID})
+add_compile_definitions(ZYGISK_MODULE_ID="${ZYGISK_MODULE_ID}")
 
 add_library(sui SHARED
         core/main_zygisk.cpp

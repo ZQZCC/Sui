@@ -17,11 +17,25 @@
  * Copyright (c) 2026 Sui Contributors
  */
 
+def gitOutput = { String... args ->
+    def command = ["git"]
+    command.addAll(args)
+    def process = new ProcessBuilder(command)
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+    def output = process.inputStream.text.trim()
+    if (process.waitFor() != 0 || output.isEmpty()) {
+        throw new GradleException("Failed to run ${command.join(' ')}: ${output}")
+    }
+    return output
+}
+
 ext {
     apply from: "$rootDir/api/manifest.gradle"
 
-    gitCommitId = 'git rev-parse --short HEAD'.execute([], rootDir).text.trim()
-    gitCommitCount = Integer.parseInt('git rev-list --count HEAD'.execute([], rootDir).text.trim())
+    gitCommitId = gitOutput("rev-parse", "--short", "HEAD")
+    gitCommitCount = Integer.parseInt(gitOutput("rev-list", "--count", "HEAD"))
 
     moduleLibraryName = "sui"
 

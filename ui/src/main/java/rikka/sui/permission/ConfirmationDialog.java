@@ -45,10 +45,9 @@ import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import androidx.core.graphics.ColorUtils;
-import com.google.android.material.color.DynamicColors;
+import androidx.core.text.HtmlCompat;
 import dev.rikka.tools.refine.Refine;
 import java.util.Objects;
-import rikka.html.text.HtmlCompat;
 import rikka.sui.R;
 import rikka.sui.databinding.ConfirmationDialogBinding;
 import rikka.sui.ktx.HandlerKt;
@@ -101,8 +100,8 @@ public class ConfirmationDialog {
             LOGGER.e("getGlobalSettings failed in ConfirmationDialog", e);
         }
 
-        if (monetEnabled) {
-            wrappedContext = DynamicColors.wrapContextIfAvailable(wrappedContext);
+        if (monetEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            wrappedContext.getTheme().applyStyle(R.style.Theme_Sui_Monet, true);
         }
 
         this.context = wrappedContext;
@@ -212,10 +211,12 @@ public class ConfirmationDialog {
         }
 
         binding.icon.setImageDrawable(resources.getDrawable(R.drawable.ic_su_24, context.getTheme()));
-        binding.title.setText(HtmlCompat.fromHtml(String.format(
-                resources.getString(R.string.permission_warning_template),
-                label,
-                resources.getString(R.string.permission_description))));
+        binding.title.setText(HtmlCompat.fromHtml(
+                String.format(
+                        resources.getString(R.string.permission_warning_template),
+                        label,
+                        resources.getString(R.string.permission_description)),
+                HtmlCompat.FROM_HTML_MODE_LEGACY));
         binding.button1Root.setText(resources.getString(R.string.grant_dialog_button_allow_always));
         binding.button1Shell.setText(resources.getString(R.string.grant_dialog_button_allow_always_shell));
         binding.button2.setText(resources.getString(R.string.grant_dialog_button_allow_one_time));

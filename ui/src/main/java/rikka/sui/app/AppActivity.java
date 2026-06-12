@@ -25,6 +25,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,7 +37,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import com.google.android.material.color.DynamicColors;
 import rikka.sui.R;
 import rikka.sui.ktx.ResourcesKt;
 import rikka.sui.util.MonetSettings;
@@ -80,6 +80,9 @@ public class AppActivity extends AppCompatActivity {
         setTheme(R.style.Theme_Sui);
 
         final boolean monetEnabled = MonetSettings.isMonetEnabled(this);
+        if (monetEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getTheme().applyStyle(R.style.Theme_Sui_Monet, true);
+        }
         MonetSettings.syncFromServerAsync(this, (changed, enabled) -> {
             if (!changed) {
                 return;
@@ -90,10 +93,6 @@ public class AppActivity extends AppCompatActivity {
                 }
             });
         });
-        if (monetEnabled) {
-            DynamicColors.applyToActivityIfAvailable(this);
-        }
-
         super.onCreate(savedInstanceState);
 
         try {

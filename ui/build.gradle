@@ -69,9 +69,6 @@ android {
 }
 
 dependencies {
-    implementation libs.smart.refresh.kernel
-    implementation libs.smart.refresh.header.material
-    implementation libs.smart.refresh.header.classics
     compileOnly libs.support.annotations
 
     implementation libs.refine.runtime
@@ -84,24 +81,14 @@ dependencies {
     compileOnly libs.hidden.stub
 
     implementation libs.parcelablelist
-    implementation libs.rikkax.insets
-    implementation libs.rikkax.lifecycle.resource.livedata
-    implementation libs.rikkax.lifecycle.viewmodel.lazy
     implementation libs.rikkax.recyclerview.adapter
-    implementation libs.rikkax.recyclerview.ktx
-    implementation libs.rikkax.widget.borderview
-    implementation libs.rikkax.html.ktx
 
     implementation libs.androidx.annotation
     implementation libs.androidx.core.ktx
     implementation libs.androidx.appcompat
-    implementation libs.androidx.fragment.ktx
     implementation libs.androidx.recyclerview
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    implementation libs.androidx.lifecycle.livedata.ktx
-    implementation libs.androidx.swiperefreshlayout
 
-    implementation libs.google.material
     implementation libs.androidx.dynamicanimation
     implementation libs.fastscroll
     implementation libs.appiconloader

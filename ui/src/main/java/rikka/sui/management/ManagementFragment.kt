@@ -51,11 +51,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DefaultItemAnimator
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
-import rikka.lifecycle.Resource
-import rikka.lifecycle.Status
-import rikka.lifecycle.viewModels
 import rikka.sui.BuildConfig
 import rikka.sui.R
 import rikka.sui.app.AppFragment
@@ -78,7 +76,7 @@ class ManagementFragment : AppFragment() {
     private var _binding: ManagementBinding? = null
     val binding: ManagementBinding get() = _binding!!
 
-    private val viewModel by viewModels { ManagementViewModel() }
+    private val viewModel by lazy { ViewModelProvider(this)[ManagementViewModel::class.java] }
     private val adapter by lazy { ManagementAdapter(requireContext()) }
 
     private val bounceEdgeEffectFactory by lazy {
@@ -562,13 +560,13 @@ class ManagementFragment : AppFragment() {
         }
     }
 
-    private fun onError(e: Throwable) {
+    private fun onError(_e: Throwable?) {
         binding.list.isVisible = true
         bounceEdgeEffectFactory.finishRefresh()
         binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE
     }
 
-    private fun onSuccess(data: Resource<List<AppInfo>?>) {
+    private fun onSuccess(data: Resource<List<AppInfo>>) {
         binding.list.isVisible = true
         bounceEdgeEffectFactory.finishRefresh()
         binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE

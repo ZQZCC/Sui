@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Widget.Sui.PopupMenu" parent="Widget.Material3.PopupMenu.Overflow">
+    <style name="Widget.Sui.PopupMenu" parent="Widget.AppCompat.PopupMenu.Overflow">
         <item name="android:popupBackground">@drawable/miuix_popup_background</item>
         <item name="android:popupEnterTransition">@transition/miuix_popup_enter</item>
         <item name="android:popupExitTransition">@transition/miuix_popup_exit</item>

@@ -15,20 +15,11 @@
     public <init>(android.content.Context, android.util.AttributeSet, int);
 }
 
--keep class androidx.appcompat.** { *; }
--keep interface androidx.appcompat.** { *; }
-
--keep class androidx.vectordrawable.** { *; }
--keep interface androidx.vectordrawable.** { *; }
-
--keep class androidx.core.** { *; }
--keep interface androidx.core.** { *; }
-
--keep class androidx.appcompat.widget.ResourceManagerInternal { *; }
--keep class androidx.appcompat.widget.AppCompatDrawableManager { *; }
-
--keep class rikka.sui.** { *; }
--keep interface rikka.sui.** { *; }
+-keep class rikka.sui.SuiActivity { *; }
+-keep class rikka.sui.SuiRequestPermissionDialog { *; }
+-keep class rikka.sui.util.MiuixPopupTransition {
+    public <init>(android.content.Context, android.util.AttributeSet);
+}
 
 -assumenosideeffects class android.util.Log {
     public static *** v(...);
@@ -49,17 +40,3 @@
 -dontwarn androidx.**
 -dontwarn android.support.**
 -dontwarn org.jetbrains.annotations.**
-
--keepattributes SourceFile,LineNumberTable
--keep class androidx.appcompat.app.AppCompatDelegateImpl$*
--keep class com.google.android.material.** { *; }
--keep interface com.google.android.material.** { *; }
--keep class com.google.android.material.theme.overlay.** { *; }
--keep class dev.rikka.rikkax.** { *; }
--keep interface dev.rikka.rikkax.** { *; }
--keep class rikka.material.** { *; }
--keep interface rikka.material.** { *; }
--keep class me.zhanghai.android.fastscroll.** { *; }
--keep interface me.zhanghai.android.fastscroll.** { *; }
--keep class me.zhanghai.android.appiconloader.** { *; }
--keep interface me.zhanghai.android.appiconloader.** { *; }

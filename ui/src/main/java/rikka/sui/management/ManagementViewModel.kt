@@ -32,11 +32,30 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import rikka.lifecycle.Resource
 import rikka.sui.model.AppInfo
 import rikka.sui.util.AppInfoComparator
 import rikka.sui.util.AppLabelCache
 import rikka.sui.util.BridgeServiceClient
+
+enum class Status {
+    LOADING,
+    SUCCESS,
+    ERROR,
+}
+
+class Resource<out T> private constructor(
+    val status: Status,
+    val data: T?,
+    val error: Throwable?,
+) {
+    companion object {
+        fun <T> loading(data: T?): Resource<T> = Resource(Status.LOADING, data, null)
+
+        fun <T> success(data: T): Resource<T> = Resource(Status.SUCCESS, data, null)
+
+        fun <T> error(error: Throwable, data: T?): Resource<T> = Resource(Status.ERROR, data, error)
+    }
+}
 
 class ManagementViewModel : ViewModel() {
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Sui.Monet">
+        <item name="colorPrimary">@color/color_primary_dark</item>
+        <item name="colorPrimaryDark">@color/color_primary_variant_dark</item>
+        <item name="colorAccent">@color/color_secondary_dark</item>
+        <item name="android:colorAccent">@color/color_secondary_dark</item>
+        <item name="colorControlActivated">@color/color_secondary_dark</item>
+    </style>
+</resources>

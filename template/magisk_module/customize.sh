@@ -86,7 +86,7 @@ mkdir "$MODPATH/zygisk"
 extract "$ZIPFILE" "lib/$ARCH_NAME/libsui.so" "$MODPATH/zygisk" true
 mv "$MODPATH/zygisk/libsui.so" "$MODPATH/zygisk/$ARCH_NAME.so"
 
-if [ "$IS64BIT" = true ]; then
+if [ "$IS64BIT" = true ] && [ -n "$ARCH_NAME_SECONDARY" ]; then
   extract "$ZIPFILE" "lib/$ARCH_NAME_SECONDARY/libsui.so" "$MODPATH/zygisk" true
   mv "$MODPATH/zygisk/libsui.so" "$MODPATH/zygisk/$ARCH_NAME_SECONDARY.so"
 fi

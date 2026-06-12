@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="?attr/colorSurface" />
+    <solid android:color="@color/miuix_bottom_sheet_bg_color" />
     <corners
         android:topLeftRadius="28dp"
         android:topRightRadius="28dp"
