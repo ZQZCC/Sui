@@ -1,8 +1,8 @@
 # Sui
 
-[🇨🇳中文README](https://github.com/XiaoTong6666/Sui/blob/main/README.zh-CN.md) | [🇯🇵日本語README](https://github.com/XiaoTong6666/Sui/blob/main/README.ja.md)
+[🇨🇳中文README](https://github.com/ZQZCC/Sui/blob/main/README.zh-CN.md) | [🇯🇵日本語README](https://github.com/ZQZCC/Sui/blob/main/README.ja.md)
 
-Modern super user interface (SUI) implementation for Android. ~~The name, Sui, also comes from [a character](https://github.com/XiaoTong6666/Sui/issues/1).~~
+Modern super user interface (SUI) implementation for Android. ~~The name, Sui, also comes from a character.~~
 
 ## Introduction
 
@@ -44,7 +44,7 @@ Note: the behavior of existing apps that only support `su` will NOT change.
 
 ### Install
 
-You can install Sui directly in KernelSU or another compatible root manager such as Magisk or APatch. Or download the zip from [release](https://github.com/XiaoTong6666/Sui/releases) and use **Install from storage** in your root manager.
+You can install Sui directly in KernelSU or another compatible root manager such as Magisk or APatch. Or download the zip from [release](https://github.com/ZQZCC/Sui/releases) and use **Install from storage** in your root manager.
 
 Sui requires a compatible root environment. On Magisk, this means Magisk 24.0+ with Zygisk enabled. On KernelSU or APatch, it additionally requires a separate Zygisk implementation such as [Zygisk Next](https://github.com/Dr-TSNG/ZygiskNext), [ReZygisk](https://github.com/PerformanC/ReZygisk), or [NeoZygisk](https://github.com/JingMatrix/NeoZygisk). Do not add SystemUI or Settings to Zygisk DenyList, otherwise the injected management UI may not work properly.
 
@@ -171,7 +171,7 @@ Common APIs include:
 Clone with submodules:
 
 ```bash
-git clone --recurse-submodules https://github.com/XiaoTong6666/Sui.git
+git clone --recurse-submodules https://github.com/ZQZCC/Sui.git
 ```
 
 Gradle tasks:

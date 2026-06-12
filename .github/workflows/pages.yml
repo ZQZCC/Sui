@@ -64,17 +64,35 @@ jobs:
         run: |
           set -euo pipefail
 
-          ZIP_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${RELEASE_ZIP_NAME}"
-          CHANGELOG_URL="https://raw.githubusercontent.com/${{ github.repository }}/pages/README.md"
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          OWNER_LOWER="$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}"
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
+          ZIP_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${RELEASE_ZIP_NAME}"
+          CHANGELOG_URL="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/pages/README.md"
+          RAW_UPDATE_JSON_URL="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/pages/sui_zygisk.json"
+          PAGES_UPDATE_JSON_URL="https://${OWNER_LOWER}.github.io/${REPO}/sui_zygisk.json"
 
-          git clone --depth=1 --branch pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" pages
-          cd pages
+          if git ls-remote --exit-code --heads "$REPO_URL" pages >/dev/null 2>&1; then
+            git clone --depth=1 --branch pages "$REPO_URL" pages
+            cd pages
+          else
+            git clone --depth=1 "$REPO_URL" pages
+            cd pages
+            git checkout --orphan pages
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
 
           {
             echo "# ${RELEASE_TITLE}"
             echo
             echo "- **Version:** \`${VERSION_SHORT}\`"
             echo "- **VersionCode:** \`${VERSION_CODE}\`"
+            echo "- **Release:** [${RELEASE_TAG}](${RELEASE_URL})"
+            echo "- **Download:** [${RELEASE_ZIP_NAME}](${ZIP_URL})"
+            echo "- **Update JSON:** [raw](${RAW_UPDATE_JSON_URL})"
+            echo "- **GitHub Pages:** [sui_zygisk.json](${PAGES_UPDATE_JSON_URL})"
             echo "- **Commit:** [\`${COMMIT_SHA}\`](${COMMIT_URL})"
             echo "- **Build time:** \`${BUILD_DURATION}\`"
             echo "- **SHA256:** \`${RELEASE_SHA256}\`"
@@ -95,14 +113,16 @@ jobs:
           }
           EOF
 
+          touch .nojekyll
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add README.md sui_zygisk.json
+          git add README.md sui_zygisk.json .nojekyll
 
           if ! git diff --staged --quiet; then
             git commit -m "Update pages metadata (versionCode=${VERSION_CODE})"
-            git push
+            git push origin pages
           else
             echo "No changes, skip."
           fi
