@@ -117,11 +117,11 @@ androidComponents {
                 expand([
                         id         : moduleId,
                         name       : moduleName,
-                        version    : "${moduleVersion} (${buildMetadata})",
+                        version    : "${moduleVersion} (${moduleVersionCode})",
                         versionCode: moduleVersionCode.toString(),
                         author     : moduleAuthor,
                         description: moduleDescription,
-                        updateJson : "https://xiaotong6666.github.io/Sui/sui_zygisk.json",
+                        updateJson : "https://zqzcc.github.io/Sui/sui_zygisk.json",
                 ])
                 filter(FixCrLfFilter.class,
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
