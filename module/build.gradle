@@ -35,7 +35,7 @@ android {
         versionName = moduleVersion.substring(1)
         externalNativeBuild {
             cmake {
-                arguments += ["-DZYGISK_MODULE_ID:STRING=\"$moduleId\"", "-DANDROID_STL=none"]
+                arguments += ["-DZYGISK_MODULE_ID:STRING=${moduleId}", "-DANDROID_STL=none"]
             }
         }
     }
