@@ -1,0 +1,93 @@
+name: Upstream Sync
+
+permissions:
+  actions: write
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: Upstream repository to merge from
+        required: true
+        default: XiaoTong6666/Sui
+        type: string
+      upstream_branch:
+        description: Upstream branch to merge from
+        required: true
+        default: main
+        type: string
+  schedule:
+    - cron: '23 */6 * * *'
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  merge:
+    name: Merge upstream
+    if: ${{ github.repository == 'ZQZCC/Sui' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Configure Git
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream main
+        id: merge
+        env:
+          UPSTREAM_REPO: ${{ github.event.inputs.upstream_repo || 'XiaoTong6666/Sui' }}
+          UPSTREAM_BRANCH: ${{ github.event.inputs.upstream_branch || 'main' }}
+        run: |
+          set -euo pipefail
+
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git" || \
+            git remote set-url upstream "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch --no-tags upstream "${UPSTREAM_BRANCH}"
+
+          UPSTREAM_REF="refs/remotes/upstream/${UPSTREAM_BRANCH}"
+          UPSTREAM_SHA="$(git rev-parse --short "${UPSTREAM_REF}")"
+          UPSTREAM_VERSION_CODE="$(git rev-list --count "${UPSTREAM_REF}")"
+
+          echo "Upstream ${UPSTREAM_REPO}@${UPSTREAM_BRANCH}: ${UPSTREAM_SHA}"
+          echo "Upstream versionCode: ${UPSTREAM_VERSION_CODE}"
+
+          if git merge-base --is-ancestor "${UPSTREAM_REF}" HEAD; then
+            echo "Already contains upstream ${UPSTREAM_SHA}."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git merge --no-edit "${UPSTREAM_REF}"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+          echo "upstream_version_code=${UPSTREAM_VERSION_CODE}" >> "$GITHUB_OUTPUT"
+
+      - name: Push merged main
+        if: ${{ steps.merge.outputs.changed == 'true' }}
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main
+
+      - name: Trigger nightly module build
+        if: ${{ steps.merge.outputs.changed == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run module.yml --ref main

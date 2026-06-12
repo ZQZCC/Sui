@@ -1,0 +1,40 @@
+/*
+ * Fork-specific release metadata.
+ *
+ * Keep upstream versionName definitions in module.gradle. This file only
+ * overrides fork branding and the numeric versionCode used for releases.
+ */
+
+def gitOutputOrNull = { String... args ->
+    def command = ["git"]
+    command.addAll(args)
+    def process = new ProcessBuilder(command)
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+    def output = process.inputStream.text.trim()
+    if (process.waitFor() != 0 || output.isEmpty()) {
+        return null
+    }
+    return output
+}
+
+def parseVersionCode = { value ->
+    if (value == null) return null
+    try {
+        return Integer.parseInt(value.toString().trim())
+    } catch (ignored) {
+        return null
+    }
+}
+
+def upstreamVersionCode = parseVersionCode(System.getenv("SUI_UPSTREAM_VERSION_CODE"))
+if (upstreamVersionCode == null) {
+    def upstreamRef = System.getenv("SUI_UPSTREAM_REF") ?: "refs/remotes/upstream/main"
+    upstreamVersionCode = parseVersionCode(gitOutputOrNull("rev-list", "--count", upstreamRef))
+}
+
+ext.moduleName = "Sui"
+ext.moduleAuthor = "Sui Contributors, XiaoTong"
+ext.moduleDescription = "现代超级用户界面实现"
+ext.moduleVersionCode = upstreamVersionCode ?: ext.gitCommitCount

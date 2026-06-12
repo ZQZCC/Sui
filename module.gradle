@@ -41,12 +41,14 @@ ext {
 
     moduleId = "zygisk-sui"
 
-    moduleName = "Sui"
-    moduleAuthor = "Sui Contributors, XiaoTong"
-    moduleDescription = "现代超级用户界面实现"
+    moduleName = "Zygisk - Sui"
+    moduleAuthor = "Sui Contributors"
+    moduleDescription = "Fork by XiaoTong.\\nModern superuser interface implementation. This module requires Magisk 24.0+ and Zygisk enabled. DO NOT add SystemUI and Settings to DenyList."
     moduleVersionMinor = 5
     moduleVersionPatch = 4.3
     moduleVersion = "v${api_version_major}.${moduleVersionMinor}.${moduleVersionPatch}"
     moduleVersionCode = gitCommitCount
 
 }
+
+apply from: "$rootDir/fork.gradle"

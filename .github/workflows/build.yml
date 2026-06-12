@@ -75,6 +75,22 @@ jobs:
           set -euo pipefail
           sed -i 's|mirrors.cloud.tencent.com/gradle/|services.gradle.org/distributions/|g' ./gradle/wrapper/gradle-wrapper.properties
 
+      - name: Resolve upstream version code
+        run: |
+          set -euo pipefail
+
+          git remote add upstream https://github.com/XiaoTong6666/Sui.git || \
+            git remote set-url upstream https://github.com/XiaoTong6666/Sui.git
+          git fetch --no-tags upstream main
+
+          UPSTREAM_REF="refs/remotes/upstream/main"
+          UPSTREAM_VERSION_CODE="$(git rev-list --count "${UPSTREAM_REF}")"
+          UPSTREAM_SHA="$(git rev-parse --short "${UPSTREAM_REF}")"
+
+          echo "SUI_UPSTREAM_REF=${UPSTREAM_REF}" >> "$GITHUB_ENV"
+          echo "SUI_UPSTREAM_VERSION_CODE=${UPSTREAM_VERSION_CODE}" >> "$GITHUB_ENV"
+          echo "Upstream versionCode: ${UPSTREAM_VERSION_CODE} (${UPSTREAM_SHA})"
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:

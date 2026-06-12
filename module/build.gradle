@@ -31,7 +31,7 @@ apply from: "$rootDir/module.gradle"
 android {
     namespace = "rikka.sui"
     defaultConfig {
-        versionCode = gitCommitCount
+        versionCode = moduleVersionCode
         versionName = moduleVersion.substring(1)
         externalNativeBuild {
             cmake {
