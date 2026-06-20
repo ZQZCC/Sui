@@ -208,6 +208,8 @@ class ManagementViewModel : ViewModel() {
                 }
                 label = name
                 flags = 0
+                effectiveFlags = 0
+                defaultFlags = 0
             }
         }
     }

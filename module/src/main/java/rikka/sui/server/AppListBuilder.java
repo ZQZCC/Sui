@@ -198,6 +198,9 @@ public class AppListBuilder {
                     AppInfo item = new AppInfo();
                     item.packageInfo = pi;
                     item.flags = flags;
+                    SuiConfig.PackageEntry effectiveEntry = configManager.find(uid);
+                    item.effectiveFlags =
+                            effectiveEntry != null ? (effectiveEntry.flags & SuiConfig.MASK_PERMISSION) : 0;
                     item.defaultFlags = defaultPermissionFlags;
                     list.add(item);
                 } catch (Throwable e) {

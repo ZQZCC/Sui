@@ -186,6 +186,7 @@ class ManagementAppItemViewHolder(
             }
 
             data.flags = data.flags and SuiConfig.MASK_PERMISSION.inv() or newValue
+            data.effectiveFlags = if (newValue != 0) newValue else data.defaultFlags and SuiConfig.MASK_PERMISSION
             syncViewStateForFlags()
             true
         }
@@ -227,12 +228,7 @@ class ManagementAppItemViewHolder(
 
     private fun syncViewStateForFlags() {
         val explicitFlags = data.flags and SuiConfig.MASK_PERMISSION
-        val effectiveFlags =
-            if (explicitFlags != 0) {
-                explicitFlags
-            } else {
-                data.defaultFlags and SuiConfig.MASK_PERMISSION
-            }
+        val effectiveFlags = data.effectiveFlags and SuiConfig.MASK_PERMISSION
         val allowed = effectiveFlags and SuiConfig.FLAG_ALLOWED != 0
         val allowedShell = effectiveFlags and SuiConfig.FLAG_ALLOWED_SHELL != 0
         if (allowed || allowedShell) {

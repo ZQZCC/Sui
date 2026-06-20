@@ -327,7 +327,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             }
         }
 
-        String key = requestUid + ":" + requestPid;
+        String key = buildPermissionRequestKey(requestUid, requestPid, requestCode);
         DelegatedPermissionCallback callback = delegatedPermissionCallbacks.get(key);
         if (callback != null) {
             removeDelegatedPermissionCallback(key, callback);
@@ -1051,7 +1051,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 return false;
             }
 
-            String key = reqUid + ":" + reqPid;
+            String key = buildPermissionRequestKey(reqUid, reqPid, requestCode);
             if (callback != null) {
                 putDelegatedPermissionCallback(key, callback);
             }
