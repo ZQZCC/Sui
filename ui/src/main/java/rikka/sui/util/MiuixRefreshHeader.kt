@@ -1,15 +1,35 @@
+/*
+ * This file is part of Sui.
+ *
+ * Sui is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Sui is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Sui.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c) 2026 Sui Contributors
+ */
+
 package rikka.sui.util
 
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
+import androidx.core.graphics.toColorInt
 import androidx.core.view.animation.PathInterpolatorCompat
 import com.scwang.smart.refresh.layout.api.RefreshHeader
 import com.scwang.smart.refresh.layout.api.RefreshKernel
@@ -37,16 +57,19 @@ class MiuixRefreshHeader @JvmOverloads constructor(
     override fun getView(): View = this
     override fun getSpinnerStyle(): SpinnerStyle = SpinnerStyle.Translate
 
+    @SuppressLint("RestrictedApi")
     override fun setPrimaryColors(vararg colors: Int) {
         if (colors.isNotEmpty()) {
             capsuleView.setColor(colors[0])
         }
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onInitialized(kernel: RefreshKernel, height: Int, maxDragHeight: Int) {
         capsuleView.setMaxDragHeight(maxDragHeight)
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onMoving(
         isDragging: Boolean,
         percent: Float,
@@ -59,21 +82,26 @@ class MiuixRefreshHeader @JvmOverloads constructor(
         }
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onReleased(refreshLayout: RefreshLayout, height: Int, maxDragHeight: Int) {
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onStartAnimator(refreshLayout: RefreshLayout, height: Int, maxDragHeight: Int) {
         capsuleView.startRefreshing()
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onFinish(refreshLayout: RefreshLayout, success: Boolean): Int {
         capsuleView.finishRefreshing()
         return 300
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onHorizontalDrag(percentX: Float, offsetX: Int, offsetMax: Int) {}
     override fun isSupportHorizontalDrag(): Boolean = false
 
+    @SuppressLint("RestrictedApi")
     override fun onStateChanged(
         refreshLayout: RefreshLayout,
         oldState: SmartRefreshState,
@@ -116,7 +144,7 @@ class CapsuleRefreshView(context: Context) : View(context) {
     private var thresholdHeight: Float = 0f
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#999999")
+        color = "#999999".toColorInt()
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
     }

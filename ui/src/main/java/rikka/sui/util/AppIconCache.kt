@@ -23,6 +23,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
+import android.os.Build
 import android.util.Log
 import android.widget.ImageView
 import androidx.collection.LruCache
@@ -93,14 +94,26 @@ object AppIconCache : CoroutineScope {
             return cachedBitmap
         }
 
-        val loader = appIconLoaders.computeIfAbsent(size) { _ ->
-            AppIconLoader(
+        val loader = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            appIconLoaders.computeIfAbsent(size) { _ ->
+                AppIconLoader(
+                    size,
+                    AppIconUtil.shouldShrinkNonAdaptiveIcons(context),
+                    object : ContextWrapper(context) {
+                        override fun getApplicationContext(): Context = context
+                    },
+                )
+            }
+        } else {
+            appIconLoaders[size] ?: AppIconLoader(
                 size,
                 AppIconUtil.shouldShrinkNonAdaptiveIcons(context),
                 object : ContextWrapper(context) {
                     override fun getApplicationContext(): Context = context
                 },
-            )
+            ).also { newLoader ->
+                appIconLoaders.putIfAbsent(size, newLoader)
+            }
         }
         val bitmap = loader.loadIcon(info, false)
 

@@ -44,6 +44,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.ColorUtils;
 import com.google.android.material.color.DynamicColors;
 import dev.rikka.tools.refine.Refine;
@@ -211,7 +212,7 @@ public class ConfirmationDialog {
             LOGGER.e("getApplicationInfoAsUser");
         }
 
-        binding.icon.setImageDrawable(resources.getDrawable(R.drawable.ic_su_24, context.getTheme()));
+        binding.icon.setImageDrawable(ResourcesCompat.getDrawable(resources, R.drawable.ic_su_24, context.getTheme()));
         binding.title.setText(HtmlCompat.fromHtml(String.format(
                 resources.getString(R.string.permission_warning_template),
                 label,

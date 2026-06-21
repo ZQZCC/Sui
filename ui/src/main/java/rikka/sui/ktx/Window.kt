@@ -19,6 +19,7 @@
 
 package rikka.sui.ktx
 
+import android.annotation.SuppressLint
 import android.view.Window
 import android.view.WindowManager
 
@@ -31,6 +32,7 @@ private val addSystemFlags =
 
 private val privateFlagsField =
     try {
+        @SuppressLint("DiscouragedPrivateApi")
         WindowManager.LayoutParams::class.java.getDeclaredField("privateFlags")
     } catch (e: Throwable) {
         null
