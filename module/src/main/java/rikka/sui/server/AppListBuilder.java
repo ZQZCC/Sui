@@ -21,6 +21,7 @@ package rikka.sui.server;
 
 import static rikka.sui.server.ServerConstants.LOGGER;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageInfoHidden;
@@ -43,6 +44,7 @@ import rikka.sui.util.UserHandleCompat;
 
 public class AppListBuilder {
 
+    @SuppressLint({"DiscouragedPrivateApi", "PrivateApi"})
     @SuppressWarnings("unchecked")
     private static List<PackageInfo> getInstalledPackagesFallback(long flags, int user) {
         try {

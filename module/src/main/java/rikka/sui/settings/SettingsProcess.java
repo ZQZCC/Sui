@@ -22,7 +22,6 @@ package rikka.sui.settings;
 import static rikka.sui.settings.SettingsConstants.LOGGER;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.ActivityThread;
 import android.app.Application;
 import android.app.Instrumentation;
@@ -39,6 +38,7 @@ import android.os.Looper;
 import android.os.UserManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import java.util.Arrays;
 import rikka.sui.resource.SuiApk;
 import rikka.sui.shortcut.SuiShortcut;
@@ -50,7 +50,7 @@ public class SettingsProcess {
     private static Handler handler;
     private static HandlerThread handlerThread;
 
-    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private static void shortcutStuff(Application application, SettingsInstrumentation instrumentation) {
         Resources resources = instrumentation.getResources();
         if (resources == null) {
@@ -59,7 +59,7 @@ public class SettingsProcess {
         }
 
         UserManager userManager = application.getSystemService(UserManager.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !userManager.isUserUnlocked()) {
+        if (!userManager.isUserUnlocked()) {
             LOGGER.v("Not unlocked, wait 5s");
             handler.postDelayed(() -> shortcutStuff(application, instrumentation), 5000);
             return;
@@ -184,10 +184,12 @@ public class SettingsProcess {
             }
 
             if (newInstrumentation.getResources() != null) {
-                handlerThread = new HandlerThread("Sui");
-                handlerThread.start();
-                handler = new Handler(handlerThread.getLooper());
-                handler.post(() -> shortcutStuff(application, newInstrumentation));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    handlerThread = new HandlerThread("Sui");
+                    handlerThread.start();
+                    handler = new Handler(handlerThread.getLooper());
+                    handler.post(() -> shortcutStuff(application, newInstrumentation));
+                }
                 LOGGER.d("postBindApplication [Delayed]: shortcutStuff has been posted.");
             }
         });

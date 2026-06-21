@@ -21,6 +21,7 @@ package rikka.sui.util;
 
 import android.util.Log;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +32,8 @@ public class Logger {
 
     private final String TAG;
     private final java.util.logging.Logger LOGGER;
-    private static final Set<String> FILE_HANDLERS = ConcurrentHashMap.newKeySet();
+    private static final Set<String> FILE_HANDLERS =
+            Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     public Logger(String TAG) {
         this.TAG = TAG;

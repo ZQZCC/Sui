@@ -21,6 +21,7 @@ package rikka.sui.server.bridge;
 
 import static rikka.sui.server.ServerConstants.LOGGER;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Parcel;
@@ -46,6 +47,7 @@ public class BridgeServiceClient {
         }
 
         @Override
+        @SuppressLint("DiscouragedPrivateApi")
         public void binderDied() {
             binder.unlinkToDeath(this, 0);
             synchronized (BridgeServiceClient.class) {

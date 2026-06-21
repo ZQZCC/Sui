@@ -24,7 +24,7 @@ import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_EXTRA;
 import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_EXTRA_TOKEN;
 import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_ID;
 
-import android.annotation.TargetApi;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -43,6 +43,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.provider.Settings;
+import androidx.annotation.RequiresApi;
 import java.util.ArrayList;
 import java.util.List;
 import rikka.sui.util.SettingsPackages;
@@ -108,12 +109,8 @@ public class SuiShortcut {
         return intent;
     }
 
-    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     public static boolean updateExistingShortcuts(Context context, Resources resources, String token) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return true;
-        }
-
         LOGGER.d("updateExistingShortcuts");
 
         boolean hasDynamic = false;
@@ -165,6 +162,7 @@ public class SuiShortcut {
             shortcutsToRemove.add("rikka.sui.SUI");
             shortcutManager.removeDynamicShortcuts(shortcutsToRemove);
 
+            @SuppressLint("DiscouragedApi")
             int id = resources.getIdentifier("shortcut_is_out_dated", "string", "rikka.sui");
             if (id != 0) {
                 shortcutManager.disableShortcuts(shortcutsToRemove, resources.getString(id));
@@ -183,7 +181,7 @@ public class SuiShortcut {
         return hasDynamic;
     }
 
-    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private static ShortcutInfo createShortcut(Context context, Resources resources, String token) {
         Icon icon;
 
@@ -205,6 +203,7 @@ public class SuiShortcut {
             paint.setColor(0xfff5f5f5 /* packages/apps/Settings/res/values/colors.xml shortcut_background */);
             canvas.drawRect(0, 0, size, size, paint);
 
+            @SuppressLint("DiscouragedApi")
             int id = resources.getIdentifier("ic_shortcut_24", "drawable", "rikka.sui");
             if (id == 0) {
                 throw new IllegalStateException("Cannot find drawable resource ic_shortcut_24");
