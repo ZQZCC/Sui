@@ -78,8 +78,8 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     private static SuiService instance;
     private static String filesPath;
     private static boolean shellMode = false;
-    private final Map<String, DelegatedPermissionCallback> delegatedPermissionCallbacks =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.concurrent.ConcurrentHashMap<String, DelegatedPermissionCallback>
+            delegatedPermissionCallbacks = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static SuiService getInstance() {
         return instance;
@@ -188,11 +188,9 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 continue;
             }
             if (record.packageName != null) {
-                affectedPackagesByUid
-                        .computeIfAbsent(record.uid, ignored -> new java.util.LinkedHashSet<>())
-                        .add(record.packageName);
+                getOrCreateAffectedPackages(affectedPackagesByUid, record.uid).add(record.packageName);
             } else {
-                affectedPackagesByUid.computeIfAbsent(record.uid, ignored -> new java.util.LinkedHashSet<>());
+                getOrCreateAffectedPackages(affectedPackagesByUid, record.uid);
             }
         }
 
@@ -256,7 +254,8 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     private void markPendingPermissionConfirmation(int requestUid, int requestPid, int requestCode) {
         synchronized (pendingPermissionLock) {
             String key = buildPermissionRequestKey(requestUid, requestPid, requestCode);
-            pendingPermissionConfirmations.merge(key, 1, Integer::sum);
+            Integer count = pendingPermissionConfirmations.get(key);
+            pendingPermissionConfirmations.put(key, count == null ? 1 : count + 1);
         }
     }
 
@@ -327,7 +326,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             }
         }
 
-        String key = requestUid + ":" + requestPid;
+        String key = buildPermissionRequestKey(requestUid, requestPid, requestCode);
         DelegatedPermissionCallback callback = delegatedPermissionCallbacks.get(key);
         if (callback != null) {
             removeDelegatedPermissionCallback(key, callback);
@@ -432,6 +431,16 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         if (delegatedPermissionCallbacks.remove(key, callback)) {
             destroyDelegatedPermissionCallback(callback);
         }
+    }
+
+    private static java.util.Set<String> getOrCreateAffectedPackages(
+            java.util.Map<Integer, java.util.Set<String>> affectedPackagesByUid, int uid) {
+        java.util.Set<String> packages = affectedPackagesByUid.get(uid);
+        if (packages == null) {
+            packages = new java.util.LinkedHashSet<>();
+            affectedPackagesByUid.put(uid, packages);
+        }
+        return packages;
     }
 
     private void destroyDelegatedPermissionCallback(DelegatedPermissionCallback callback) {
@@ -1051,7 +1060,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 return false;
             }
 
-            String key = reqUid + ":" + reqPid;
+            String key = buildPermissionRequestKey(reqUid, reqPid, requestCode);
             if (callback != null) {
                 putDelegatedPermissionCallback(key, callback);
             }

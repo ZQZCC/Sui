@@ -24,6 +24,7 @@ import static rikka.shizuku.ShizukuApiConstants.ATTACH_APPLICATION_PACKAGE_NAME;
 import static rikka.shizuku.ShizukuApiConstants.SERVER_VERSION;
 import static rikka.sui.manager.ManagerConstants.LOGGER;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityThread;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -174,6 +175,7 @@ public class ManagerProcess {
     }
 
     @SuppressWarnings("deprecation")
+    @SuppressLint("InlinedApi")
     private static void registerListener() {
         Context context = null;
         try {

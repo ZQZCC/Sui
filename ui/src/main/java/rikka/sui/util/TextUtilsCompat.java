@@ -68,7 +68,7 @@ public class TextUtilsCompat {
      *
      * @see #makeSafeForPresentation(String, int, float, int)
      */
-    public static final int SAFE_STRING_FLAG_SINGLE_LINE = 0x2;
+    public static final int SAFE_STRING_FLAG_SINGLE_LINE = 1 << 1;
 
     /**
      * Return only first line of text (truncate at first newline). Cannot be set at the same time as
@@ -76,7 +76,7 @@ public class TextUtilsCompat {
      *
      * @see #makeSafeForPresentation(String, int, float, int)
      */
-    public static final int SAFE_STRING_FLAG_FIRST_LINE = 0x4;
+    public static final int SAFE_STRING_FLAG_FIRST_LINE = 1 << 2;
 
     private static boolean isNewline(int codePoint) {
         int type = Character.getType(codePoint);

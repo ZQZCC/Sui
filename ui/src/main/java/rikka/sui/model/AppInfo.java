@@ -23,11 +23,37 @@ import android.content.pm.PackageInfo;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+import rikka.sui.server.SuiConfig;
 
 public class AppInfo implements Parcelable {
 
+    private static final int EFFECTIVE_FLAGS_SHIFT = 16;
+    private static final int LEGACY_FLAGS_MASK = 0xFFFF;
+
+    private static int packDefaultFlags(int defaultFlags, int effectiveFlags) {
+        return (defaultFlags & LEGACY_FLAGS_MASK)
+                | ((effectiveFlags & SuiConfig.MASK_PERMISSION) << EFFECTIVE_FLAGS_SHIFT);
+    }
+
+    private static int unpackDefaultFlags(int packedDefaultFlags) {
+        return packedDefaultFlags & LEGACY_FLAGS_MASK;
+    }
+
+    private static int unpackEffectiveFlags(int explicitFlags, int packedDefaultFlags) {
+        int encoded = (packedDefaultFlags >>> EFFECTIVE_FLAGS_SHIFT) & SuiConfig.MASK_PERMISSION;
+        if (encoded != 0) {
+            return encoded;
+        }
+        int explicit = explicitFlags & SuiConfig.MASK_PERMISSION;
+        if (explicit != 0) {
+            return explicit;
+        }
+        return unpackDefaultFlags(packedDefaultFlags) & SuiConfig.MASK_PERMISSION;
+    }
+
     public PackageInfo packageInfo;
     public int flags;
+    public int effectiveFlags;
     public int defaultFlags;
     public CharSequence label = null;
 
@@ -41,7 +67,9 @@ public class AppInfo implements Parcelable {
             packageInfo = in.readParcelable(PackageInfo.class.getClassLoader());
         }
         flags = in.readInt();
-        defaultFlags = in.readInt();
+        int packedDefaultFlags = in.readInt();
+        defaultFlags = unpackDefaultFlags(packedDefaultFlags);
+        effectiveFlags = unpackEffectiveFlags(flags, packedDefaultFlags);
     }
 
     public static final Creator<AppInfo> CREATOR = new Creator<AppInfo>() {
@@ -65,6 +93,6 @@ public class AppInfo implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeParcelable(packageInfo, flags);
         dest.writeInt(this.flags);
-        dest.writeInt(defaultFlags);
+        dest.writeInt(packDefaultFlags(defaultFlags, effectiveFlags));
     }
 }

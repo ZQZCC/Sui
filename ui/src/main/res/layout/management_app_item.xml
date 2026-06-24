@@ -19,6 +19,7 @@
   -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -86,9 +87,9 @@
         android:layout_height="match_parent"
         android:layout_marginStart="8dp"
         android:gravity="center_vertical|end"
-        android:drawableEnd="@drawable/ic_miuix_dropdown_arrow"
+        app:drawableEndCompat="@drawable/ic_miuix_dropdown_arrow"
         android:drawablePadding="4dp"
-        android:drawableTint="?android:attr/textColorTertiary"
+        app:drawableTint="?android:attr/textColorTertiary"
         android:textColor="?android:attr/textColorTertiary"
         android:textSize="14sp"
         tools:text="Default" />

@@ -22,6 +22,7 @@ package rikka.sui.settings;
 import static rikka.sui.settings.SettingsConstants.LOGGER;
 import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_EXTRA;
 import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_EXTRA_TOKEN;
+import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_ID;
 
 import android.app.Activity;
 import android.app.ActivityThread;
@@ -35,6 +36,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ShortcutManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
@@ -102,6 +104,20 @@ public class SettingsInstrumentation extends Instrumentation {
         return suiApk.getResources();
     }
 
+    private void reportShortcutUsedIfAvailable() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
+            return;
+        }
+        try {
+            ShortcutManager shortcutManager = application.getSystemService(ShortcutManager.class);
+            if (shortcutManager != null) {
+                shortcutManager.reportShortcutUsed(SHORTCUT_ID);
+            }
+        } catch (Throwable e) {
+            LOGGER.w(e, "reportShortcutUsed");
+        }
+    }
+
     @Override
     public Activity newActivity(ClassLoader cl, String className, Intent intent)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException {
@@ -123,6 +139,7 @@ public class SettingsInstrumentation extends Instrumentation {
 
                 if (realToken != null && realToken.equals(suiToken)) {
                     LOGGER.v("creating SuiActivity");
+                    reportShortcutUsedIfAvailable();
                     try {
                         return (Activity) suiActivityConstructor.newInstance(application, suiApk.getResources());
                     } catch (InvocationTargetException e) {
@@ -369,6 +386,7 @@ public class SettingsInstrumentation extends Instrumentation {
 
                     if (realToken != null && realToken.equals(suiToken)) {
                         LOGGER.v("creating SuiActivity from 10 args newActivity");
+                        reportShortcutUsedIfAvailable();
                         try {
                             return (Activity) suiActivityConstructor.newInstance(application, suiApk.getResources());
                         } catch (InvocationTargetException e) {

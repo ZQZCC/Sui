@@ -21,6 +21,7 @@ package rikka.sui.server;
 
 import static rikka.sui.server.ServerConstants.LOGGER;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageInfoHidden;
@@ -43,6 +44,7 @@ import rikka.sui.util.UserHandleCompat;
 
 public class AppListBuilder {
 
+    @SuppressLint({"DiscouragedPrivateApi", "PrivateApi"})
     @SuppressWarnings("unchecked")
     private static List<PackageInfo> getInstalledPackagesFallback(long flags, int user) {
         try {
@@ -198,6 +200,9 @@ public class AppListBuilder {
                     AppInfo item = new AppInfo();
                     item.packageInfo = pi;
                     item.flags = flags;
+                    SuiConfig.PackageEntry effectiveEntry = configManager.find(uid);
+                    item.effectiveFlags =
+                            effectiveEntry != null ? (effectiveEntry.flags & SuiConfig.MASK_PERMISSION) : 0;
                     item.defaultFlags = defaultPermissionFlags;
                     list.add(item);
                 } catch (Throwable e) {

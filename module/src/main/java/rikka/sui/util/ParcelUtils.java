@@ -19,6 +19,7 @@
 
 package rikka.sui.util;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.Parcel;
 import java.lang.reflect.Method;
@@ -38,6 +39,7 @@ public class ParcelUtils {
 
     private static Method obtainMethod;
 
+    @SuppressLint("SoonBlockedPrivateApi")
     public static Parcel fromNativePointer(long ptr) {
         if (ptr == 0) return null;
 

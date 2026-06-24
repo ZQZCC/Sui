@@ -19,7 +19,6 @@
 
 package rikka.sui.installer;
 
-import android.annotation.TargetApi;
 import android.content.pm.IShortcutService;
 import android.content.pm.IShortcutServiceV31;
 import android.os.Build;
@@ -31,6 +30,7 @@ import android.os.ServiceManager;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
+import androidx.annotation.RequiresApi;
 import dev.rikka.tools.refine.Refine;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ import java.util.List;
 import rikka.sui.shortcut.ShortcutConstants;
 import rikka.sui.util.SettingsPackages;
 
-@TargetApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.O)
 public class Uninstaller {
 
     private static final String TAG = "SuiUninstaller";

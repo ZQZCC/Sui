@@ -17,6 +17,11 @@ on:
         required: true
         default: main
         type: string
+      force_release:
+        description: Trigger nightly even when upstream is already merged
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '23 */6 * * *'
 
@@ -52,6 +57,7 @@ jobs:
         env:
           UPSTREAM_REPO: ${{ github.event.inputs.upstream_repo || 'XiaoTong6666/Sui' }}
           UPSTREAM_BRANCH: ${{ github.event.inputs.upstream_branch || 'main' }}
+          FORCE_RELEASE: ${{ github.event.inputs.force_release || 'false' }}
         run: |
           set -euo pipefail
 
@@ -62,32 +68,86 @@ jobs:
           UPSTREAM_REF="refs/remotes/upstream/${UPSTREAM_BRANCH}"
           UPSTREAM_SHA="$(git rev-parse --short "${UPSTREAM_REF}")"
           UPSTREAM_VERSION_CODE="$(git rev-list --count "${UPSTREAM_REF}")"
+          CURRENT_VERSION_CODE="$(
+            curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/pages/sui_zygisk.json" |
+            jq -r '.versionCode // empty'
+          )" || CURRENT_VERSION_CODE=""
 
           echo "Upstream ${UPSTREAM_REPO}@${UPSTREAM_BRANCH}: ${UPSTREAM_SHA}"
           echo "Upstream versionCode: ${UPSTREAM_VERSION_CODE}"
+          echo "Current update versionCode: ${CURRENT_VERSION_CODE:-none}"
 
           if git merge-base --is-ancestor "${UPSTREAM_REF}" HEAD; then
             echo "Already contains upstream ${UPSTREAM_SHA}."
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            if [ "$FORCE_RELEASE" = "true" ] ||
+              [ -z "${CURRENT_VERSION_CODE}" ] ||
+              [ "${UPSTREAM_VERSION_CODE}" -gt "${CURRENT_VERSION_CODE}" ]; then
+              echo "should_release=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+            fi
             exit 0
           fi
 
           git merge --no-edit "${UPSTREAM_REF}"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
           echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
           echo "upstream_version_code=${UPSTREAM_VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Push merged main
         if: ${{ steps.merge.outputs.changed == 'true' }}
         run: |
           set -euo pipefail
           git push origin HEAD:main
+          for attempt in {1..30}; do
+            remote_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+            if [ "$remote_sha" = "${{ steps.merge.outputs.target_sha }}" ]; then
+              exit 0
+            fi
+            echo "Wait for origin/main to update (${attempt}/30)"
+            sleep 2
+          done
+          echo "origin/main did not update to ${{ steps.merge.outputs.target_sha }}" >&2
+          exit 1
 
       - name: Trigger nightly module build
-        if: ${{ steps.merge.outputs.changed == 'true' }}
+        if: ${{ steps.merge.outputs.should_release == 'true' }}
+        id: trigger
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          target_sha="${{ steps.merge.outputs.target_sha }}"
+
           gh workflow run module.yml --ref main
+
+          run_id=""
+          for attempt in {1..30}; do
+            run_id="$(
+              gh run list \
+                --workflow module.yml \
+                --branch main \
+                --event workflow_dispatch \
+                --json databaseId,headSha,status \
+                --jq ".[] | select(.headSha == \"${target_sha}\") | .databaseId" |
+              head -n1
+            )"
+            if [ -n "$run_id" ]; then
+              echo "module_run_id=${run_id}" >> "$GITHUB_OUTPUT"
+              break
+            fi
+            echo "Wait for Module workflow_dispatch run (${attempt}/30)"
+            sleep 2
+          done
+
+          if [ -z "$run_id" ]; then
+            echo "Timed out waiting for Module workflow_dispatch run for ${target_sha}" >&2
+            exit 1
+          fi
+
+          gh run watch "$run_id" --exit-status

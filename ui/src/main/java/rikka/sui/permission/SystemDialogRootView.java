@@ -27,6 +27,7 @@ import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import rikka.sui.util.Logger;
 
 public class SystemDialogRootView extends FrameLayout {
@@ -103,11 +104,7 @@ public class SystemDialogRootView extends FrameLayout {
 
         try {
             try {
-                if (android.os.Build.VERSION.SDK_INT >= 33) {
-                    getContext().registerReceiver(receiver, intentFilter, android.content.Context.RECEIVER_EXPORTED);
-                } else {
-                    getContext().registerReceiver(receiver, intentFilter);
-                }
+                ContextCompat.registerReceiver(getContext(), receiver, intentFilter, ContextCompat.RECEIVER_EXPORTED);
                 LOGGER.i("registerReceiver android.intent.action.CLOSE_SYSTEM_DIALOGS");
             } catch (Exception e) {
                 LOGGER.w(e, "registerReceiver android.intent.action.CLOSE_SYSTEM_DIALOGS");
