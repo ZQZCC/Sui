@@ -7,7 +7,7 @@
 - **Update JSON:** [raw](https://raw.githubusercontent.com/ZQZCC/Sui/pages/sui_zygisk.json)
 - **GitHub Pages:** [sui_zygisk.json](https://zqzcc.github.io/Sui/sui_zygisk.json)
 - **Commit:** [`9070239`](https://github.com/ZQZCC/Sui/commit/9070239e39e51581947a37ff639121197981a699)
-- **Build time:** `1m 57s`
+- **Build time:** `0m 54s`
 - **SHA256:** `b6b021de5eb2e0135acebf909c9d14787e04a7a2ace4ca66772815a0fa033f2d`
 
 ## Message
