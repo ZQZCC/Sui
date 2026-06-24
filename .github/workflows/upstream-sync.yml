@@ -124,12 +124,13 @@ jobs:
           set -euo pipefail
           target_sha="${{ steps.merge.outputs.target_sha }}"
 
-          gh workflow run module.yml --ref main
+          gh workflow run module.yml --repo "${GITHUB_REPOSITORY}" --ref main
 
           run_id=""
           for attempt in {1..30}; do
             run_id="$(
               gh run list \
+                --repo "${GITHUB_REPOSITORY}" \
                 --workflow module.yml \
                 --branch main \
                 --event workflow_dispatch \
@@ -150,4 +151,4 @@ jobs:
             exit 1
           fi
 
-          gh run watch "$run_id" --exit-status
+          gh run watch "$run_id" --repo "${GITHUB_REPOSITORY}" --exit-status
