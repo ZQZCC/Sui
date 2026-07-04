@@ -163,6 +163,8 @@ Sui.init(packageName)
 
 ## ビルド
 
+> **注:** 必要な API サブプロジェクトを含めるため、submodule 付きでリポジトリを clone してください。
+
 ```bash
 git clone --recurse-submodules https://github.com/XiaoTong6666/Sui.git
 ```
@@ -184,6 +186,42 @@ Gradle タスク例（`BuildType` は `Debug` か `Release`）:
 ./gradlew :module:zipRelease
 ./gradlew :module:flashRelease
 ```
+
+## トラブルシューティング
+
+### Sui のログ取得
+
+```sh
+adb logcat -v time | grep -i sui
+```
+
+### 問題を報告する方法
+
+問題を報告する場合は、**debug** ビルドで再現したログを添付してください。
+
+- まず **debug** 版の Sui をインストールまたはフラッシュし、問題を再現する。
+- **KernelSU** または **APatch** を使っている場合は、先に root マネージャー側のログを書き出してください。モジュールのマウント、Zygisk 注入、SELinux、起動初期段階の問題についてはこちらの方が情報量が多いことがあります。
+- 併せて [Sui のログ取得](#sui-のログ取得) を参照してください。
+- さらに以下の環境情報も添えてください:
+  - root 実装とそのバージョン
+  - Zygisk 実装とそのバージョン
+  - Android バージョン / ROM
+  - `SystemUI` や `Settings` を DenyList に入れているかどうか
+  - 正確な再現手順
+
+debug ビルドでは再現せず、release ビルドでのみ発生する場合は、release 固有の症状と正確な再現手順を補足してください。
+
+### Sui 管理画面を開けない
+
+- root 環境が対応していること（Magisk + Zygisk、または KernelSU / APatch + 互換 Zygisk 実装）。
+- `SystemUI` と `Settings` が Zygisk DenyList に入っていないこと。
+- Sui のインストールまたは更新後に端末を再起動していること。
+
+### オプション機能が期待通り動かない
+
+- Sui のモジュールファイルや marker ファイルを変更した後は、一度端末を再起動してください。
+- 必要に応じて KernelSU / APatch のログを書き出し、併せて [Sui のログ取得](#sui-のログ取得) を参照してください。
+- 必要に応じて `/data/adb/sui/` 配下の marker ファイルや生成ファイルが存在するかも確認してください。
 
 ## 内部構成
 
