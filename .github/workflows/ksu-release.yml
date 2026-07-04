@@ -70,7 +70,10 @@ jobs:
           RELEASE_SHA256: ${{ inputs.release_sha256 }}
         run: |
           set -euo pipefail
-          test -n "${GH_TOKEN:-}"
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "KSU_REPO_TOKEN is not set, skip KernelSU community release sync."
+            exit 0
+          fi
 
           wait_for_release_cleanup() {
             local tag="$1"

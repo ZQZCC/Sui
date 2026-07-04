@@ -1,8 +1,8 @@
 # Sui
 
-[🇺🇸English README](https://github.com/XiaoTong6666/Sui/blob/main/README.md) | [🇯🇵日本語README](https://github.com/XiaoTong6666/Sui/blob/main/README.ja.md)
+[🇺🇸English README](https://github.com/ZQZCC/Sui/blob/main/README.md) | [🇯🇵日本語README](https://github.com/ZQZCC/Sui/blob/main/README.ja.md)
 
-用于 Android 的现代超级用户界面（SUI）实现。~~名字 Sui 也来自于一个[角色](https://github.com/XiaoTong6666/Sui/issues/1)。~~
+用于 Android 的现代超级用户界面（SUI）实现。~~名字 Sui 也来自于一个角色。~~
 
 ## 简介
 
@@ -44,7 +44,7 @@ Android 使用 `Binder` 来完成这类 IPC。`Binder` 会让 server 端知道 c
 
 ### 安装
 
-你可以直接在 KernelSU 或其他兼容的 root 管理器中安装 Sui，例如 Magisk / APatch。或者从 [release](https://github.com/XiaoTong6666/Sui/releases) 下载 zip 包，并在 root 管理器的 **从本地安装（Install from storage）** 中刷入。
+你可以直接在 KernelSU 或其他兼容的 root 管理器中安装 Sui，例如 Magisk / APatch。或者从 [release](https://github.com/ZQZCC/Sui/releases) 下载 zip 包，并在 root 管理器的 **从本地安装（Install from storage）** 中刷入。
 
 Sui 需要一个兼容的 root 环境。对于 Magisk，需要 Magisk 24.0+ 且启用 Zygisk；对于 KernelSU / APatch，则需要额外配合独立实现的 Zygisk，例如 [Zygisk Next](https://github.com/Dr-TSNG/ZygiskNext)、[ReZygisk](https://github.com/PerformanC/ReZygisk) 或 [NeoZygisk](https://github.com/JingMatrix/NeoZygisk)。请不要将 SystemUI 或 Settings 加入 Zygisk DenyList，否则注入式管理界面可能无法正常工作。
 
@@ -171,7 +171,7 @@ fun checkShizukuPermission() {
 > **注意：** 请使用带 submodule 的方式克隆仓库，否则所需的 API 子项目会缺失。
 
 ```bash
-git clone --recurse-submodules https://github.com/XiaoTong6666/Sui.git
+git clone --recurse-submodules https://github.com/ZQZCC/Sui.git
 ```
 
 Gradle 任务：

@@ -28,7 +28,6 @@ plugins {
 
 apply(from = "$rootDir/module.gradle.kts")
 
-val gitCommitCount = extra["gitCommitCount"] as Int
 val moduleVersion = extra["moduleVersion"] as String
 val moduleId = extra["moduleId"] as String
 val moduleVersionCode = extra["moduleVersionCode"] as Int
@@ -69,11 +68,11 @@ android {
     namespace = "rikka.sui"
     defaultConfig {
         minSdk = 23
-        versionCode = gitCommitCount
+        versionCode = moduleVersionCode
         versionName = moduleVersion.substring(1)
         externalNativeBuild {
             cmake {
-                arguments += listOf("-DZYGISK_MODULE_ID:STRING=\"$moduleId\"", "-DANDROID_STL=none")
+                arguments += listOf("-DZYGISK_MODULE_ID:STRING=$moduleId", "-DANDROID_STL=none")
             }
         }
     }
@@ -155,7 +154,7 @@ androidComponents {
                 include("module.prop")
                 expand(
                     modulePropValues + mapOf(
-                        "version" to "${moduleVersion} (${buildMetadata})",
+                        "version" to "${moduleVersion} (${moduleVersionCode})",
                         "versionCode" to moduleVersionCode.toString()
                     )
                 )

@@ -47,18 +47,22 @@ fun runGitCommand(vararg args: String): String? =
 
 val gitCommitId = runGitCommand("git", "rev-parse", "--short", "HEAD") ?: "unknown"
 val gitCommitCount = runGitCommand("git", "rev-list", "--count", "HEAD")?.toIntOrNull() ?: 1
+fun parseVersionCode(value: String?): Int? = value?.trim()?.toIntOrNull()
+val upstreamVersionCode = parseVersionCode(System.getenv("SUI_UPSTREAM_VERSION_CODE"))
+    ?: parseVersionCode(runGitCommand("git", "rev-list", "--count", System.getenv("SUI_UPSTREAM_REF") ?: "refs/remotes/upstream/main"))
 
 val apiVersionMajor = extra["api_version_major"].toString()
 
 val moduleLibraryName = "sui"
 val moduleId = "zygisk-sui"
-val moduleName = "Zygisk - Sui"
-val moduleAuthor = "Sui Contributors"
-val moduleDescription = "Fork by XiaoTong.\\nModern superuser interface implementation. This module requires Magisk 24.0+ and Zygisk enabled. DO NOT add SystemUI and Settings to DenyList."
+val moduleName = "Sui"
+val moduleAuthor = "Sui Contributors, XiaoTong"
+val moduleDescription = "现代超级用户界面实现"
 val moduleVersionMinor = 5
 val moduleVersionPatch = "4.3"
-val moduleUpdateJson = "https://xiaotong6666.github.io/Sui/sui_zygisk.json"
+val moduleUpdateJson = "https://raw.githubusercontent.com/ZQZCC/Sui/pages/sui_zygisk.json"
 val moduleLocaleFilters = "en,zh,zh-rCN,zh-rTW"
+val moduleVersionCode = upstreamVersionCode ?: gitCommitCount
 
 extra["gitCommitId"] = gitCommitId
 extra["gitCommitCount"] = gitCommitCount
@@ -70,6 +74,6 @@ extra["moduleDescription"] = moduleDescription
 extra["moduleVersionMinor"] = moduleVersionMinor
 extra["moduleVersionPatch"] = moduleVersionPatch
 extra["moduleVersion"] = "v${apiVersionMajor}.${moduleVersionMinor}.${moduleVersionPatch}"
-extra["moduleVersionCode"] = gitCommitCount
+extra["moduleVersionCode"] = moduleVersionCode
 extra["moduleUpdateJson"] = moduleUpdateJson
 extra["moduleLocaleFilters"] = moduleLocaleFilters

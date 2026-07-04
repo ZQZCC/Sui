@@ -38,7 +38,7 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') }}
     uses: ./.github/workflows/release.yml
     with:
       release_tag: ${{ github.ref == 'refs/heads/main' && 'nightly' || github.ref_name }}
@@ -60,10 +60,10 @@ jobs:
     needs:
       - build
       - release
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') }}
     uses: ./.github/workflows/ksu-release.yml
     with:
-      main_repo: XiaoTong6666/Sui
+      main_repo: ZQZCC/Sui
       ksu_target_repo: KernelSU-Modules-Repo/zygisk-sui
       version_name: ${{ needs.build.outputs.version_name }}
       version_code: ${{ needs.build.outputs.version_code }}
@@ -79,7 +79,11 @@ jobs:
     needs:
       - build
       - release
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/') }}
     uses: ./.github/workflows/pages.yml
     with:
       release_tag: ${{ github.ref == 'refs/heads/main' && 'nightly' || github.ref_name }}

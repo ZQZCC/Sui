@@ -1,8 +1,6 @@
 if [ "$ARCH" = "arm64" ]; then
   ARCH_NAME="arm64-v8a"
-  ARCH_NAME_SECONDARY="armeabi-v7a"
   ARCH_DIR="lib64"
-  ARCH_DIR_SECONDARY="lib"
 elif [ "$ARCH" = "arm" ]; then
   ARCH_NAME="armeabi-v7a"
   ARCH_DIR="lib"
@@ -26,11 +24,21 @@ enforce_install_from_magisk_app() {
 }
 
 check_arch() {
-  if [ -z $ARCH_NAME ]; then
+  if [ -z "$ARCH_NAME" ]; then
     abort "! Unsupported platform: $ARCH"
-  else
-    ui_print "- Device platform: $ARCH"
   fi
+
+  if ! unzip -l "$ZIPFILE" "lib/$ARCH_NAME/libsui.so" >/dev/null 2>&1; then
+    abort "! This package does not support platform: $ARCH"
+  fi
+
+  if [ "$IS64BIT" = true ] && [ -n "$ARCH_NAME_SECONDARY" ]; then
+    if ! unzip -l "$ZIPFILE" "lib/$ARCH_NAME_SECONDARY/libsui.so" >/dev/null 2>&1; then
+      ARCH_NAME_SECONDARY=""
+    fi
+  fi
+
+  ui_print "- Device platform: $ARCH"
 }
 
 check_android_version() {

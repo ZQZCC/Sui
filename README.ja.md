@@ -1,6 +1,6 @@
 # Sui
 
-[🇺🇸English README](https://github.com/XiaoTong6666/Sui/blob/main/README.md) | [🇨🇳中文README](https://github.com/XiaoTong6666/Sui/blob/main/README.zh-CN.md)
+[🇺🇸English README](https://github.com/ZQZCC/Sui/blob/main/README.md) | [🇨🇳中文README](https://github.com/ZQZCC/Sui/blob/main/README.zh-CN.md)
 
 Android 向けのモダンなスーパーユーザーインターフェース (SUI) 実装です。
 
@@ -41,7 +41,7 @@ Sui は Java API（具体的には [Shizuku API](https://github.com/RikkaApps/Sh
 
 ### インストール
 
-Sui は KernelSU、Magisk、APatch などの対応する root 管理アプリから直接インストールできます。あるいは [release](https://github.com/XiaoTong6666/Sui/releases) から zip をダウンロードし、root 管理アプリの「ストレージからインストール」でインストールしてください。
+Sui は KernelSU、Magisk、APatch などの対応する root 管理アプリから直接インストールできます。あるいは [release](https://github.com/ZQZCC/Sui/releases) から zip をダウンロードし、root 管理アプリの「ストレージからインストール」でインストールしてください。
 
 Sui の動作には対応した root 環境が必要です。Magisk の場合は **Magisk 24.0 以上で Zygisk が有効** であることが条件です。KernelSU や APatch を利用する場合は、別途 Zygisk 実装（例: [Zygisk Next](https://github.com/Dr-TSNG/ZygiskNext)、[ReZygisk](https://github.com/PerformanC/ReZygisk)、[NeoZygisk](https://github.com/JingMatrix/NeoZygisk)）が必要です。`SystemUI` や `Settings` を Zygisk の DenyList に入れないようにしてください。そうしないと、注入された管理 UI が正しく動作しなくなります。
 
@@ -166,7 +166,7 @@ Sui.init(packageName)
 > **注:** 必要な API サブプロジェクトを含めるため、submodule 付きでリポジトリを clone してください。
 
 ```bash
-git clone --recurse-submodules https://github.com/XiaoTong6666/Sui.git
+git clone --recurse-submodules https://github.com/ZQZCC/Sui.git
 ```
 
 Gradle タスク例（`BuildType` は `Debug` か `Release`）:

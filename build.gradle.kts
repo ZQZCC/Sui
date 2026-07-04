@@ -62,6 +62,9 @@ fun ApplicationExtension.configureAndroidAppDefaults() {
     defaultConfig {
         minSdk = 23
         targetSdk = androidTargetSdk
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
@@ -80,6 +83,9 @@ fun LibraryExtension.configureAndroidLibraryDefaults() {
 
     defaultConfig {
         minSdk = 23
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
