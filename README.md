@@ -1,14 +1,14 @@
 # Nightly Build
 
 - **Version:** `v13.5.4.3`
-- **VersionCode:** `507`
+- **VersionCode:** `508`
 - **Release:** [nightly](https://github.com/ZQZCC/Sui/releases/tag/nightly)
-- **Download:** [Sui-v13.5.4.3_507-5debd10-release.zip](https://github.com/ZQZCC/Sui/releases/download/nightly/Sui-v13.5.4.3_507-5debd10-release.zip)
+- **Download:** [Sui-v13.5.4.3_508-22cffb7-release.zip](https://github.com/ZQZCC/Sui/releases/download/nightly/Sui-v13.5.4.3_508-22cffb7-release.zip)
 - **Update JSON:** [raw](https://raw.githubusercontent.com/ZQZCC/Sui/pages/sui_zygisk.json)
 - **GitHub Pages:** [sui_zygisk.json](https://zqzcc.github.io/Sui/sui_zygisk.json)
-- **Commit:** [`5debd10`](https://github.com/ZQZCC/Sui/commit/5debd10bffbfd1e60c516ed2c0b4a9cd87e1ec0a)
-- **Build time:** `1m 54s`
-- **SHA256:** `b90b1e241984947ad1f8279178c663ebeeef7e32660ea5d97d161f5b5130714c`
+- **Commit:** [`22cffb7`](https://github.com/ZQZCC/Sui/commit/22cffb76b676e25e4c751f4c34272cbe8a07a09b)
+- **Build time:** `3m 27s`
+- **SHA256:** `d059876db9d8615863ccf99ef12338b54fd20f2b1afaf07274f4cc4c93696899`
 
 ## Message
 
