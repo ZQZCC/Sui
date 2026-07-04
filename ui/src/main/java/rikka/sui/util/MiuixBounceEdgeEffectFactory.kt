@@ -122,6 +122,12 @@ class MiuixBounceEdgeEffectFactory(private val onRefreshListener: (() -> Unit)? 
         topEffect?.finishRefresh()
     }
 
+    fun cancelRefresh() {
+        topEffect?.cancelRefresh()
+    }
+
+    fun isRefreshActive(): Boolean = topEffect?.isRefreshActive() == true
+
     private val attachListener = object : RecyclerView.OnChildAttachStateChangeListener {
         override fun onChildViewAttachedToWindow(child: View) {
             child.translationY = topTranslationY + bottomTranslationY
@@ -236,6 +242,19 @@ class MiuixBounceEdgeEffectFactory(private val onRefreshListener: (() -> Unit)? 
                 springAnim.spring.finalPosition = 0f
                 springAnim.start()
             }
+        }
+
+        fun isRefreshActive(): Boolean = direction == DIRECTION_TOP && (isRefreshing || isReleasingToRefresh || currentTranslationY > 0f)
+
+        fun cancelRefresh() {
+            if (direction != DIRECTION_TOP) return
+
+            isRefreshing = false
+            isReleasingToRefresh = false
+            rawTouchAccumulation = 0f
+            springAnim.cancel()
+            translationProxy.setValue(this, 0f)
+            dispatchState(RefreshState.IDLE)
         }
 
         fun handlePull(deltaY: Float): Float {

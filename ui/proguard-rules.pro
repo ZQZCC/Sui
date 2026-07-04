@@ -9,26 +9,51 @@
   public static final android.os.Parcelable$Creator CREATOR;
 }
 
--keep public class * extends android.view.View {
-    public <init>(android.content.Context);
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
+-keep class rikka.sui.SuiActivity {
+    public <init>(android.app.Application, android.content.res.Resources);
 }
 
--keep class androidx.appcompat.** { *; }
--keep interface androidx.appcompat.** { *; }
+-keep class rikka.sui.SuiRequestPermissionDialog {
+    public <init>(android.app.Application, android.content.res.Resources, int, int, java.lang.String, int);
+}
 
--keep class androidx.vectordrawable.** { *; }
--keep interface androidx.vectordrawable.** { *; }
+-keep class rikka.sui.util.MiuixPopupTransition {
+    public <init>();
+}
 
--keep class androidx.core.** { *; }
--keep interface androidx.core.** { *; }
+-keep class rikka.sui.widget.MiuixDragHandleView {
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context);
+}
 
--keep class androidx.appcompat.widget.ResourceManagerInternal { *; }
--keep class androidx.appcompat.widget.AppCompatDrawableManager { *; }
+-keep class rikka.sui.util.MiuixPullToRefreshView {
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context);
+}
 
--keep class rikka.sui.** { *; }
--keep interface rikka.sui.** { *; }
+-keep class androidx.appcompat.widget.PopupMenu { *; }
+-keep class androidx.appcompat.view.menu.MenuPopupHelper { *; }
+-keep class androidx.appcompat.view.menu.MenuPopup { *; }
+-keep class androidx.appcompat.view.menu.StandardMenuPopup { *; }
+-keep class androidx.appcompat.view.menu.CascadingMenuPopup { *; }
+-keep class androidx.appcompat.widget.MenuPopupWindow { *; }
+-keep class androidx.appcompat.widget.MenuPopupWindow$MenuDropDownListView { *; }
+
+-keepclassmembers class androidx.appcompat.widget.PopupMenu {
+    *** mAnchor;
+    *** mPopup;
+}
+
+-keepclassmembers class androidx.appcompat.** {
+    *** mPopup;
+    *** getPopup(...);
+    *** getListView(...);
+    void setForceShowIcon(boolean);
+    void setOverlapAnchor(boolean);
+    void setForceIgnoreOutsideTouch(boolean);
+}
 
 -assumenosideeffects class android.util.Log {
     public static *** v(...);
@@ -49,17 +74,3 @@
 -dontwarn androidx.**
 -dontwarn android.support.**
 -dontwarn org.jetbrains.annotations.**
-
--keepattributes SourceFile,LineNumberTable
--keep class androidx.appcompat.app.AppCompatDelegateImpl$*
--keep class com.google.android.material.** { *; }
--keep interface com.google.android.material.** { *; }
--keep class com.google.android.material.theme.overlay.** { *; }
--keep class dev.rikka.rikkax.** { *; }
--keep interface dev.rikka.rikkax.** { *; }
--keep class rikka.material.** { *; }
--keep interface rikka.material.** { *; }
--keep class me.zhanghai.android.fastscroll.** { *; }
--keep interface me.zhanghai.android.fastscroll.** { *; }
--keep class me.zhanghai.android.appiconloader.** { *; }
--keep interface me.zhanghai.android.appiconloader.** { *; }

@@ -8,23 +8,13 @@ nativehelper = "1.0.1"
 parcelablelist = "2.0.1"
 annotation = "1.10.0"
 core = "1.19.0"
-smart-refresh = "2.1.1"
 coroutines = "1.11.0"
-insets = "1.3.0"
-lifecycle-resource-livedata = "1.0.1"
-lifecycle-viewmodel-lazy = "2.0.0"
-recyclerview-adapter = "1.3.0"
-recyclerview-ktx = "1.3.2"
-borderview = "1.1.0"
-html-ktx = "1.1.2"
 appcompat = "1.7.1"
 fragment = "1.8.9"
 recyclerview = "1.4.0"
 lifecycle = "2.11.0"
-swiperefreshlayout = "1.2.0"
 material = "1.14.0"
 dynamicanimation = "1.1.0"
-fastscroll = "1.3.0"
 appiconloader = "1.5.0"
 spotless = "8.8.0"
 support-annotations = "28.0.0"
@@ -39,27 +29,14 @@ parcelablelist = { group = "dev.rikka.rikkax.parcelablelist", name = "parcelable
 androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
 androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core" }
-smart-refresh-kernel = { group = "io.github.scwang90", name = "refresh-layout-kernel", version.ref = "smart-refresh" }
-smart-refresh-header-material = { group = "io.github.scwang90", name = "refresh-header-material", version.ref = "smart-refresh" }
-smart-refresh-header-classics = { group = "io.github.scwang90", name = "refresh-header-classics", version.ref = "smart-refresh" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
-rikkax-insets = { group = "dev.rikka.rikkax.insets", name = "insets", version.ref = "insets" }
-rikkax-lifecycle-resource-livedata = { group = "dev.rikka.rikkax.lifecycle", name = "lifecycle-resource-livedata", version.ref = "lifecycle-resource-livedata" }
-rikkax-lifecycle-viewmodel-lazy = { group = "dev.rikka.rikkax.lifecycle", name = "lifecycle-viewmodel-lazy", version.ref = "lifecycle-viewmodel-lazy" }
-rikkax-recyclerview-adapter = { group = "dev.rikka.rikkax.recyclerview", name = "recyclerview-adapter", version.ref = "recyclerview-adapter" }
-rikkax-recyclerview-ktx = { group = "dev.rikka.rikkax.recyclerview", name = "recyclerview-ktx", version.ref = "recyclerview-ktx" }
-rikkax-widget-borderview = { group = "dev.rikka.rikkax.widget", name = "borderview", version.ref = "borderview" }
-rikkax-html-ktx = { group = "dev.rikka.rikkax.html", name = "html-ktx", version.ref = "html-ktx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
-androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }
-androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-dynamicanimation = { group = "androidx.dynamicanimation", name = "dynamicanimation", version.ref = "dynamicanimation" }
-fastscroll = { group = "me.zhanghai.android.fastscroll", name = "library", version.ref = "fastscroll" }
 appiconloader = { group = "me.zhanghai.android.appiconloader", name = "appiconloader", version.ref = "appiconloader" }
 support-annotations = { group = "com.android.support", name = "support-annotations", version.ref = "support-annotations" }
 

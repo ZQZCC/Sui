@@ -173,7 +173,7 @@ androidComponents {
                 into("lib")
             }
             from(uiApkDir) {
-                exclude("output-metadata.json")
+                include("*.apk")
                 rename { "sui.apk" }
             }
             doLast {

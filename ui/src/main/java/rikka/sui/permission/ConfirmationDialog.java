@@ -46,10 +46,10 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.ColorUtils;
+import androidx.core.text.HtmlCompat;
 import com.google.android.material.color.DynamicColors;
 import dev.rikka.tools.refine.Refine;
 import java.util.Objects;
-import rikka.html.text.HtmlCompat;
 import rikka.sui.R;
 import rikka.sui.databinding.ConfirmationDialogBinding;
 import rikka.sui.ktx.HandlerKt;
@@ -213,10 +213,12 @@ public class ConfirmationDialog {
         }
 
         binding.icon.setImageDrawable(ResourcesCompat.getDrawable(resources, R.drawable.ic_su_24, context.getTheme()));
-        binding.title.setText(HtmlCompat.fromHtml(String.format(
-                resources.getString(R.string.permission_warning_template),
-                label,
-                resources.getString(R.string.permission_description))));
+        binding.title.setText(HtmlCompat.fromHtml(
+                String.format(
+                        resources.getString(R.string.permission_warning_template),
+                        label,
+                        resources.getString(R.string.permission_description)),
+                HtmlCompat.FROM_HTML_MODE_LEGACY));
         binding.button1Root.setText(resources.getString(R.string.grant_dialog_button_allow_always));
         binding.button1Shell.setText(resources.getString(R.string.grant_dialog_button_allow_always_shell));
         binding.button2.setText(resources.getString(R.string.grant_dialog_button_allow_one_time));

@@ -31,13 +31,13 @@ import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import androidx.core.graphics.toColorInt
 import androidx.core.view.animation.PathInterpolatorCompat
-import com.scwang.smart.refresh.layout.api.RefreshHeader
-import com.scwang.smart.refresh.layout.api.RefreshKernel
-import com.scwang.smart.refresh.layout.api.RefreshLayout
-import com.scwang.smart.refresh.layout.constant.SpinnerStyle
+import rikka.sui.util.refresh.RefreshHeader
+import rikka.sui.util.refresh.RefreshKernel
+import rikka.sui.util.refresh.RefreshLayout
+import rikka.sui.util.refresh.SpinnerStyle
 import kotlin.math.cos
 import kotlin.math.sin
-import com.scwang.smart.refresh.layout.constant.RefreshState as SmartRefreshState
+import rikka.sui.util.refresh.RefreshState as SmartRefreshState
 
 class MiuixRefreshHeader @JvmOverloads constructor(
     context: Context,
@@ -45,7 +45,7 @@ class MiuixRefreshHeader @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr),
     RefreshHeader {
-    override fun autoOpen(p0: Int, p1: Float, p2: Boolean): Boolean = false
+    override fun autoOpen(duration: Int, dragRate: Float, animationOnly: Boolean): Boolean = false
 
     private val capsuleView = CapsuleRefreshView(context)
 
@@ -123,8 +123,6 @@ class MiuixRefreshHeader @JvmOverloads constructor(
             SmartRefreshState.Refreshing -> {
                 capsuleView.setRefreshState(RefreshState.REFRESHING)
             }
-
-            else -> {}
         }
     }
 }

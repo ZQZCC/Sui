@@ -1,18 +1,16 @@
 -keep class rikka.sui.** { *; }
 -keep interface rikka.sui.** { *; }
--keep class rikka.rish.** { *; }
 
 -keepclasseswithmembernames class * {
     native <methods>;
 }
 
--keep interface **.I* { *; }
--keep class **.I*$* { *; }
+-keep interface moe.shizuku.server.I* { *; }
+-keep class moe.shizuku.server.I*$* { *; }
 
--keep class * implements android.os.Parcelable {
+-keepnames class * implements android.os.Parcelable
+-keepclassmembers class * implements android.os.Parcelable {
     public static final android.os.Parcelable$Creator CREATOR;
-    <fields>;
-    <methods>;
 }
 
 -assumenosideeffects class android.util.Log {

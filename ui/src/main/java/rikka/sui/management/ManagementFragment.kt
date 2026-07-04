@@ -51,11 +51,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DefaultItemAnimator
-import me.zhanghai.android.fastscroll.FastScrollerBuilder
-import rikka.lifecycle.Resource
-import rikka.lifecycle.Status
-import rikka.lifecycle.viewModels
 import rikka.sui.BuildConfig
 import rikka.sui.R
 import rikka.sui.app.AppFragment
@@ -64,6 +61,7 @@ import rikka.sui.ktx.resolveColor
 import rikka.sui.model.AppInfo
 import rikka.sui.server.SuiConfig
 import rikka.sui.util.BridgeServiceClient
+import rikka.sui.util.EdgeDragFastScroller
 import rikka.sui.util.MiuixBounceEdgeEffectFactory
 import rikka.sui.util.MiuixPopupDimOverlay
 import rikka.sui.util.MiuixPressHelper
@@ -78,7 +76,9 @@ class ManagementFragment : AppFragment() {
     private var _binding: ManagementBinding? = null
     val binding: ManagementBinding get() = _binding!!
 
-    private val viewModel by viewModels { ManagementViewModel() }
+    private val viewModel by lazy {
+        ViewModelProvider(this)[ManagementViewModel::class.java]
+    }
     private val adapter by lazy { ManagementAdapter(requireContext()) }
 
     private val bounceEdgeEffectFactory by lazy {
@@ -90,6 +90,18 @@ class ManagementFragment : AppFragment() {
     private var lastMenuClickTime = 0L
     private var lastPopupDismissTime = 0L
     private var overflowPopupMenu: PopupMenu? = null
+
+    private fun cancelRefreshForFastScroll() {
+        if (!bounceEdgeEffectFactory.isRefreshActive() && viewModel.appList.value?.status != Status.LOADING) {
+            return
+        }
+
+        bounceEdgeEffectFactory.cancelRefresh()
+        binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE
+        binding.pullToRefreshIndicator.dragOffset = 0f
+        binding.pullToRefreshIndicator.pullProgress = 0f
+        viewModel.cancelReload()
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = ManagementBinding.inflate(inflater, container, false)
@@ -169,8 +181,6 @@ class ManagementFragment : AppFragment() {
         }
         val density = requireContext().resources.displayMetrics.density
 
-        var fastScroller: me.zhanghai.android.fastscroll.FastScroller? = null
-
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
 
@@ -183,8 +193,6 @@ class ManagementFragment : AppFragment() {
                 binding.list.paddingRight,
                 basePaddingBottom + extraPadding,
             )
-
-            fastScroller?.setPadding(0, 0, 0, navBars.bottom)
 
             insets
         }
@@ -209,9 +217,9 @@ class ManagementFragment : AppFragment() {
             this.edgeEffectFactory = bounceEdgeEffectFactory
             this.setItemViewCacheSize(20)
             this.recycledViewPool.setMaxRecycledViews(0, 20)
-            fastScroller = FastScrollerBuilder(this)
-                .useMd2Style()
-                .build()
+            EdgeDragFastScroller(this) {
+                cancelRefreshForFastScroll()
+            }
         }
 
         viewModel.appList.observe(viewLifecycleOwner) {
@@ -563,7 +571,7 @@ class ManagementFragment : AppFragment() {
         }
     }
 
-    private fun onError(e: Throwable) {
+    private fun onError(e: Throwable?) {
         binding.list.isVisible = true
         bounceEdgeEffectFactory.finishRefresh()
         binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE

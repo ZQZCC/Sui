@@ -18,6 +18,7 @@
  */
 package rikka.sui.management
 
+import android.content.ContextWrapper
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Typeface
@@ -27,14 +28,13 @@ import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.get
 import androidx.core.view.size
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Job
-import rikka.recyclerview.BaseViewHolder
 import rikka.sui.R
 import rikka.sui.databinding.ManagementAppItemBinding
 import rikka.sui.ktx.resolveColor
@@ -51,30 +51,27 @@ import rikka.sui.util.UserHandleCompat
 import rikka.sui.util.applyMiuixPopupStyle
 import rikka.sui.util.colorCheckedItemsMiuixBlue
 
-class ManagementAppItemViewHolder(
+class ManagementAppItemViewHolder private constructor(
     private val binding: ManagementAppItemBinding,
-) : BaseViewHolder<AppInfo>(binding.root),
-    View.OnClickListener {
+) : RecyclerView.ViewHolder(binding.root) {
+
     companion object {
-        fun Creator() = Creator<AppInfo> { inflater: LayoutInflater, parent: ViewGroup? ->
-            ManagementAppItemViewHolder(
-                ManagementAppItemBinding.inflate(inflater, parent, false),
-            )
-        }
-
-        private val SANS_SERIF = Typeface.create("sans-serif", Typeface.NORMAL)
         private val SANS_SERIF_MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-
         private var lastMenuClickTime = 0L
         private var lastPopupDismissTime = 0L
+
+        fun create(inflater: LayoutInflater, parent: ViewGroup): ManagementAppItemViewHolder = ManagementAppItemViewHolder(ManagementAppItemBinding.inflate(inflater, parent, false))
     }
+
+    private val context get() = binding.root.context
+    private lateinit var data: AppInfo
+    private var adapter: ManagementAdapter? = null
 
     private inline val packageName get() = data.packageInfo.packageName
     private inline val ai get() = data.packageInfo.applicationInfo
-    private inline val uid get() = ai!!.uid
+    private inline val uid get() = ai?.uid ?: 0
 
     private var loadIconJob: Job? = null
-    private var suppressSelectionCallback = false
     private var activePopupMenu: PopupMenu? = null
 
     private val icon get() = binding.icon
@@ -84,7 +81,6 @@ class ManagementAppItemViewHolder(
 
     private val textColorSecondary: ColorStateList
     private val textColorPrimary: ColorStateList
-
     private val iconSize: Int
 
     init {
@@ -101,29 +97,43 @@ class ManagementAppItemViewHolder(
             val primaryColor = context.theme.resolveColor(androidx.appcompat.R.attr.colorPrimary)
             normalColor = ColorUtils.blendARGB(normalColor, primaryColor, 0.10f)
         }
-        this.itemView.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(
-            context,
-            normalColor,
-        )
-
-        this.itemView.setOnClickListener { showPopupMenu() }
-        this.itemView.setOnTouchListener(MiuixPressHelper())
+        binding.root.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(context, normalColor)
+        binding.root.setOnClickListener { showPopupMenu() }
+        binding.root.setOnTouchListener(MiuixPressHelper())
 
         iconSize = context.resources.getDimensionPixelSize(R.dimen.expected_app_icon_max_size)
-
         icon.outlineProvider = MiuixSquircleProvider(10.5f)
         icon.clipToOutline = true
     }
 
+    fun bind(data: AppInfo, adapter: ManagementAdapter) {
+        this.data = data
+        this.adapter = adapter
+        loadIconJob?.cancel()
+
+        val userId = UserHandleCompat.getUserId(uid)
+        val label = data.label
+        name.text = if (userId == UserHandleCompat.myUserId()) label else "$label - ($userId)"
+        pkg.text = packageName
+        syncViewStateForFlags()
+
+        val applicationInfo = ai ?: return
+        loadIconJob = AppIconCache.loadIconBitmapAsync(context, applicationInfo, userId, icon, iconSize)
+    }
+
+    fun recycle() {
+        if (loadIconJob?.isActive == true) {
+            loadIconJob?.cancel()
+        }
+    }
+
     private fun showPopupMenu() {
         val currentTime = SystemClock.elapsedRealtime()
-        if (currentTime - lastPopupDismissTime < 200 || currentTime - lastMenuClickTime < 300) {
-            return
-        }
+        if (currentTime - lastPopupDismissTime < 200 || currentTime - lastMenuClickTime < 300) return
         lastMenuClickTime = currentTime
 
-        if (activePopupMenu != null) {
-            activePopupMenu?.dismiss()
+        activePopupMenu?.let {
+            it.dismiss()
             activePopupMenu = null
             return
         }
@@ -132,11 +142,10 @@ class ManagementAppItemViewHolder(
         val popupMenu = PopupMenu(contextWrapper, statusText, Gravity.END)
         activePopupMenu = popupMenu
         popupMenu.inflate(R.menu.app_item_options_menu)
-
         statusText.isActivated = true
 
         var activityContext = itemView.context
-        while (activityContext is android.content.ContextWrapper) {
+        while (activityContext is ContextWrapper) {
             if (activityContext is android.app.Activity) break
             activityContext = activityContext.baseContext
         }
@@ -148,9 +157,7 @@ class ManagementAppItemViewHolder(
             statusText.isActivated = false
             MiuixPopupDimOverlay.hide()
             lastPopupDismissTime = SystemClock.elapsedRealtime()
-            if (activePopupMenu === popupMenu) {
-                activePopupMenu = null
-            }
+            if (activePopupMenu === popupMenu) activePopupMenu = null
         }
 
         val explicitFlags = data.flags and SuiConfig.MASK_PERMISSION
@@ -178,9 +185,7 @@ class ManagementAppItemViewHolder(
             }
 
             try {
-                BridgeServiceClient
-                    .getService()
-                    .updateFlagsForUid(uid, SuiConfig.MASK_PERMISSION, newValue)
+                BridgeServiceClient.getService().updateFlagsForUid(uid, SuiConfig.MASK_PERMISSION, newValue)
             } catch (e: Throwable) {
                 Log.e("SuiSettings", "updateFlagsForUid", e)
             }
@@ -188,42 +193,12 @@ class ManagementAppItemViewHolder(
             data.flags = data.flags and SuiConfig.MASK_PERMISSION.inv() or newValue
             data.effectiveFlags = if (newValue != 0) newValue else data.defaultFlags and SuiConfig.MASK_PERMISSION
             syncViewStateForFlags()
+            adapter?.notifyItemChanged(bindingAdapterPosition, Any())
             true
         }
 
         popupMenu.colorCheckedItemsMiuixBlue(itemView.context)
         popupMenu.applyMiuixPopupStyle()
-    }
-
-    override fun onClick(v: View) {
-        adapter.notifyItemChanged(bindingAdapterPosition, Any())
-    }
-
-    override fun onBind() {
-        loadIconJob?.cancel()
-
-        val userId = UserHandleCompat.getUserId(uid)
-
-        val label = data.label
-        if (userId == UserHandleCompat.myUserId()) {
-            name.text = label
-        } else {
-            name.text = "$label - ($userId)"
-        }
-
-        pkg.text = ai!!.packageName
-
-        syncViewStateForFlags()
-
-        loadIconJob = AppIconCache.loadIconBitmapAsync(context, ai!!, userId, icon, iconSize)
-    }
-
-    override fun onBind(payloads: List<Any>) {}
-
-    override fun onRecycle() {
-        if (loadIconJob?.isActive == true) {
-            loadIconJob?.cancel()
-        }
     }
 
     private fun syncViewStateForFlags() {
@@ -255,7 +230,7 @@ class ManagementAppItemViewHolder(
         if (explicitAllowed || explicitAllowedShell) {
             statusText.setTextColor(context.theme.resolveColor(androidx.appcompat.R.attr.colorAccent))
         } else if (explicitDenied) {
-            val isNight = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_YES != 0
+            val isNight = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
             statusText.setTextColor(if (isNight) 0xFFFF8A80.toInt() else 0xFFFF5252.toInt())
         } else if (explicitHidden) {
             statusText.setTextColor(context.theme.resolveColor(android.R.attr.colorForeground))

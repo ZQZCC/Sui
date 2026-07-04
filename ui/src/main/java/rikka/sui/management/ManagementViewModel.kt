@@ -27,12 +27,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import rikka.lifecycle.Resource
 import rikka.sui.model.AppInfo
 import rikka.sui.util.AppInfoComparator
 import rikka.sui.util.AppLabelCache
@@ -45,9 +45,11 @@ class ManagementViewModel : ViewModel() {
     var showOnlyShizukuApps = false
     var isMonetEnabled = false
     private var hasLoadedGlobalSettings = false
-    val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
+    val appList = MutableLiveData<Resource<List<AppInfo>?>?>(null)
     private var currentQuery: String? = null
-    private fun displayList() {
+    private var reloadJob: Job? = null
+
+    private fun buildDisplayList(): List<AppInfo> {
         var tempSequence = fullList.asSequence()
         if (!currentQuery.isNullOrBlank()) {
             tempSequence = tempSequence.filter { appInfo ->
@@ -56,8 +58,11 @@ class ManagementViewModel : ViewModel() {
                 appName.contains(currentQuery!!, ignoreCase = true) || packageName.contains(currentQuery!!, ignoreCase = true)
             }
         }
-        val sortedList = tempSequence.sortedWith(AppInfoComparator()).toList()
-        appList.postValue(Resource.success(sortedList))
+        return tempSequence.sortedWith(AppInfoComparator()).toList()
+    }
+
+    private fun displayList() {
+        appList.postValue(Resource.success(buildDisplayList()))
     }
 
     fun filter(query: String?) {
@@ -134,10 +139,11 @@ class ManagementViewModel : ViewModel() {
     }
 
     fun reload(context: Context) {
+        reloadJob?.cancel()
         appList.postValue(Resource.loading(null))
 
         if (uiDebugMode) {
-            viewModelScope.launch(Dispatchers.IO) {
+            reloadJob = viewModelScope.launch(Dispatchers.IO) {
                 val fakeData = createFakeAppList()
                 fullList.clear()
                 fullList.addAll(fakeData)
@@ -146,7 +152,7 @@ class ManagementViewModel : ViewModel() {
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        reloadJob = viewModelScope.launch(Dispatchers.IO) {
             val pm = context.packageManager
             try {
                 if (!hasLoadedGlobalSettings) {
@@ -180,6 +186,12 @@ class ManagementViewModel : ViewModel() {
                 appList.postValue(Resource.error(e, null))
             }
         }
+    }
+
+    fun cancelReload() {
+        reloadJob?.cancel()
+        reloadJob = null
+        appList.postValue(Resource.success(buildDisplayList()))
     }
 
     private fun createFakeAppList(): List<AppInfo> {

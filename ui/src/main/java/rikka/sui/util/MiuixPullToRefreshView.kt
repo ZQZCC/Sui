@@ -30,14 +30,16 @@ import android.view.View
 import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import androidx.core.view.animation.PathInterpolatorCompat
-import com.scwang.smart.refresh.layout.api.RefreshHeader
-import com.scwang.smart.refresh.layout.api.RefreshLayout
-import com.scwang.smart.refresh.layout.constant.SpinnerStyle
 import rikka.sui.R
+import rikka.sui.util.refresh.RefreshHeader
+import rikka.sui.util.refresh.RefreshKernel
+import rikka.sui.util.refresh.RefreshLayout
+import rikka.sui.util.refresh.SpinnerStyle
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sin
-import com.scwang.smart.refresh.layout.constant.RefreshState as SmartRefreshState
+import rikka.sui.util.refresh.RefreshState as SmartRefreshState
 
 class MiuixPullToRefreshView @JvmOverloads constructor(
     context: Context,
@@ -116,6 +118,13 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (state == RefreshState.IDLE) return
 
+        val visibleHeight = dragOffset.coerceAtLeast(0f)
+        if (visibleHeight <= 0f) return
+
+        canvas.save()
+        val clipBottom = (visibleHeight + ringStrokeWidthPx).coerceAtMost(height.toFloat())
+        canvas.clipRect(0f, 0f, width.toFloat(), clipBottom)
+
         val safePadding = resources.getDimension(R.dimen.miuix_pull_to_refresh_safe_padding)
         val cx = width / 2f
 
@@ -138,7 +147,9 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
                 paint.alpha = 255
                 val overDrag = (dragOffset - thresholdOffset).coerceAtLeast(0f)
 
-                val maxLineLength = (dragOffset - 2 * safePadding - 2 * drawRadius).coerceAtLeast(0f)
+                val availableTop = (cy - drawRadius - safePadding).coerceAtLeast(0f)
+                val availableBottom = (visibleHeight - cy - drawRadius).coerceAtLeast(0f)
+                val maxLineLength = (min(availableTop, availableBottom) * 2f).coerceAtLeast(0f)
                 val lineLength = overDrag.coerceAtMost(maxLineLength)
 
                 if (lineLength > 0f) {
@@ -156,7 +167,7 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
                     canvas.drawCircle(cx, cy, drawRadius, paint)
                 }
 
-                if (state == RefreshState.REFRESHING) {
+                if (state == RefreshState.REFRESHING && lineLength <= 0f) {
                     val scaleRatio = drawRadius / indicatorRadiusPx
                     val orbitRadius = drawRadius - 2 * ringStrokeWidthPx * scaleRatio
                     val currentStroke = ringStrokeWidthPx * scaleRatio
@@ -181,6 +192,8 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
 
             RefreshState.IDLE -> {}
         }
+
+        canvas.restore()
     }
 
     private fun startRotating() {
@@ -230,7 +243,7 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
     override fun setPrimaryColors(vararg colors: Int) {}
 
     @SuppressLint("RestrictedApi")
-    override fun onInitialized(kernel: com.scwang.smart.refresh.layout.api.RefreshKernel, height: Int, maxDragHeight: Int) {
+    override fun onInitialized(kernel: RefreshKernel, height: Int, maxDragHeight: Int) {
         thresholdOffset = height.toFloat()
         maxDragDistancePx = maxDragHeight.toFloat()
     }
@@ -277,7 +290,6 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
             SmartRefreshState.None, SmartRefreshState.PullDownToRefresh -> state = RefreshState.IDLE
             SmartRefreshState.ReleaseToRefresh -> state = RefreshState.THRESHOLD_REACHED
             SmartRefreshState.Refreshing -> state = RefreshState.REFRESHING
-            else -> {}
         }
     }
 }

@@ -19,54 +19,58 @@
 package rikka.sui.management
 
 import android.content.Context
-import android.view.View
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.zhanghai.android.fastscroll.PopupTextProvider
-import rikka.recyclerview.BaseRecyclerViewAdapter
-import rikka.recyclerview.ClassCreatorPool
 import rikka.sui.model.AppInfo
 
 class ManagementAdapter(
     context: Context,
-) : BaseRecyclerViewAdapter<ClassCreatorPool>(),
-    PopupTextProvider {
+) : RecyclerView.Adapter<ManagementAppItemViewHolder>() {
 
+    private val inflater = LayoutInflater.from(context)
     private val adapterScope = MainScope()
+    private val items = ArrayList<AppInfo>()
     private var updateJob: Job? = null
 
     init {
-        creatorPool.putRule(AppInfo::class.java, ManagementAppItemViewHolder.Creator())
         setHasStableIds(true)
     }
 
+    override fun getItemCount(): Int = items.size
+
     override fun getItemId(position: Int): Long {
-        val item = getItemAt<Any>(position)
-        return if (item is AppInfo) {
-            val uid = item.packageInfo.applicationInfo?.uid?.toLong() ?: 0L
-            uid * 31L + item.packageInfo.packageName.hashCode().toLong()
-        } else {
-            item.hashCode().toLong()
-        }
+        val item = items[position]
+        val uid = item.packageInfo.applicationInfo?.uid?.toLong() ?: 0L
+        return uid * 31L + item.packageInfo.packageName.hashCode().toLong()
     }
 
-    override fun onCreateCreatorPool(): ClassCreatorPool = ClassCreatorPool()
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ManagementAppItemViewHolder = ManagementAppItemViewHolder.create(inflater, parent)
+
+    override fun onBindViewHolder(holder: ManagementAppItemViewHolder, position: Int) {
+        holder.bind(items[position], this)
+    }
+
+    override fun onViewRecycled(holder: ManagementAppItemViewHolder) {
+        holder.recycle()
+        super.onViewRecycled(holder)
+    }
 
     fun updateData(data: List<AppInfo>) {
         updateJob?.cancel()
-
-        val newData = java.util.ArrayList<Any>(data)
+        val newData = ArrayList(data)
 
         updateJob = adapterScope.launch(Dispatchers.Default) {
-            val oldData = withContext(Dispatchers.Main) {
-                java.util.ArrayList(getItems<Any>())
-            }
-
-            val result = androidx.recyclerview.widget.DiffUtil.calculateDiff(object : androidx.recyclerview.widget.DiffUtil.Callback() {
+            val oldData = withContext(Dispatchers.Main) { ArrayList(items) }
+            val result = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
                 override fun getOldListSize(): Int = oldData.size
 
                 override fun getNewListSize(): Int = newData.size
@@ -74,38 +78,25 @@ class ManagementAdapter(
                 override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                     val oldItem = oldData[oldItemPosition]
                     val newItem = newData[newItemPosition]
-                    if (oldItem is AppInfo && newItem is AppInfo) {
-                        return oldItem.packageInfo.packageName == newItem.packageInfo.packageName &&
-                            oldItem.packageInfo.applicationInfo?.uid == newItem.packageInfo.applicationInfo?.uid
-                    }
-                    return oldItem == newItem
+                    return oldItem.packageInfo.packageName == newItem.packageInfo.packageName &&
+                        oldItem.packageInfo.applicationInfo?.uid == newItem.packageInfo.applicationInfo?.uid
                 }
 
-                override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                    val oldItem = oldData[oldItemPosition]
-                    val newItem = newData[newItemPosition]
-                    return oldItem == newItem
-                }
+                override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean = oldData[oldItemPosition] == newData[newItemPosition]
             })
 
             withContext(Dispatchers.Main) {
-                if (isActive) {
-                    val itemsList = getItems<Any>()
-                    itemsList.clear()
-                    itemsList.addAll(newData)
-                    result.dispatchUpdatesTo(this@ManagementAdapter)
-                }
+                if (!isActive) return@withContext
+                items.clear()
+                items.addAll(newData)
+                result.dispatchUpdatesTo(this@ManagementAdapter)
             }
         }
     }
 
-    override fun onDetachedFromRecyclerView(recyclerView: androidx.recyclerview.widget.RecyclerView) {
-        super.onDetachedFromRecyclerView(recyclerView)
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         updateJob?.cancel()
+        adapterScope.cancel()
+        super.onDetachedFromRecyclerView(recyclerView)
     }
-
-    override fun getPopupText(
-        view: View,
-        position: Int,
-    ): CharSequence = ""
 }
