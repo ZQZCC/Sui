@@ -20,7 +20,6 @@
 package rikka.sui.util
 
 import android.animation.ValueAnimator
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -31,22 +30,16 @@ import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import androidx.core.view.animation.PathInterpolatorCompat
 import rikka.sui.R
-import rikka.sui.util.refresh.RefreshHeader
-import rikka.sui.util.refresh.RefreshKernel
-import rikka.sui.util.refresh.RefreshLayout
-import rikka.sui.util.refresh.SpinnerStyle
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
-import rikka.sui.util.refresh.RefreshState as SmartRefreshState
 
 class MiuixPullToRefreshView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : View(context, attrs, defStyleAttr),
-    RefreshHeader {
+) : View(context, attrs, defStyleAttr) {
 
     enum class RefreshState {
         IDLE,
@@ -235,61 +228,4 @@ class MiuixPullToRefreshView @JvmOverloads constructor(
         }
     }
 
-    override fun getView(): View = this
-
-    override fun getSpinnerStyle(): SpinnerStyle = SpinnerStyle.Translate
-
-    @SuppressLint("RestrictedApi")
-    override fun setPrimaryColors(vararg colors: Int) {}
-
-    @SuppressLint("RestrictedApi")
-    override fun onInitialized(kernel: RefreshKernel, height: Int, maxDragHeight: Int) {
-        thresholdOffset = height.toFloat()
-        maxDragDistancePx = maxDragHeight.toFloat()
-    }
-
-    @SuppressLint("RestrictedApi")
-    override fun onMoving(isDragging: Boolean, percent: Float, offset: Int, height: Int, maxDragHeight: Int) {
-        dragOffset = offset.toFloat()
-        pullProgress = percent
-
-        if (isDragging && state != RefreshState.REFRESHING && state != RefreshState.REFRESH_COMPLETE) {
-            state = if (offset >= height) {
-                RefreshState.THRESHOLD_REACHED
-            } else {
-                RefreshState.PULLING
-            }
-        }
-    }
-
-    @SuppressLint("RestrictedApi")
-    override fun onReleased(refreshLayout: RefreshLayout, height: Int, maxDragHeight: Int) {
-    }
-
-    @SuppressLint("RestrictedApi")
-    override fun onStartAnimator(refreshLayout: RefreshLayout, height: Int, maxDragHeight: Int) {
-        state = RefreshState.REFRESHING
-    }
-
-    @SuppressLint("RestrictedApi")
-    override fun onFinish(refreshLayout: RefreshLayout, success: Boolean): Int {
-        state = RefreshState.REFRESH_COMPLETE
-        return 300
-    }
-
-    @SuppressLint("RestrictedApi")
-    override fun onHorizontalDrag(percentX: Float, offsetX: Int, offsetMax: Int) {}
-
-    override fun isSupportHorizontalDrag(): Boolean = false
-
-    override fun autoOpen(duration: Int, dragRate: Float, animationOnly: Boolean): Boolean = false
-
-    @SuppressLint("RestrictedApi")
-    override fun onStateChanged(refreshLayout: RefreshLayout, oldState: SmartRefreshState, newState: SmartRefreshState) {
-        when (newState) {
-            SmartRefreshState.None, SmartRefreshState.PullDownToRefresh -> state = RefreshState.IDLE
-            SmartRefreshState.ReleaseToRefresh -> state = RefreshState.THRESHOLD_REACHED
-            SmartRefreshState.Refreshing -> state = RefreshState.REFRESHING
-        }
-    }
 }

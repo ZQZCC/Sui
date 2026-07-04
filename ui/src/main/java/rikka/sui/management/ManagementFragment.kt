@@ -39,9 +39,9 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
+import android.widget.SearchView
 import android.widget.Toast
-import androidx.appcompat.widget.PopupMenu
-import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.MenuHost
@@ -76,9 +76,7 @@ class ManagementFragment : AppFragment() {
     private var _binding: ManagementBinding? = null
     val binding: ManagementBinding get() = _binding!!
 
-    private val viewModel by lazy {
-        ViewModelProvider(this)[ManagementViewModel::class.java]
-    }
+    private val viewModel by lazy { ViewModelProvider(this)[ManagementViewModel::class.java] }
     private val adapter by lazy { ManagementAdapter(requireContext()) }
 
     private val bounceEdgeEffectFactory by lazy {

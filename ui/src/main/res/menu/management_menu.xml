@@ -18,21 +18,20 @@
   ~ Copyright (c) 2025-2026 Sui Contributors
   -->
 
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search_24"
         android:title="Search"
-        app:actionViewClass="androidx.appcompat.widget.SearchView"
-        app:showAsAction="ifRoom|collapseActionView"
-        app:iconTint="?attr/colorControlNormal"/>
+        android:actionViewClass="android.widget.SearchView"
+        android:showAsAction="ifRoom|collapseActionView"
+        android:iconTint="?android:attr/colorControlNormal"/>
     <item
         android:id="@+id/action_overflow"
         android:icon="@drawable/ic_miuix_more_circle"
         android:title="More"
-        app:showAsAction="always"
-        app:iconTint="?attr/colorControlNormal"/>
+        android:showAsAction="always"
+        android:iconTint="?android:attr/colorControlNormal"/>
 
 </menu>

@@ -33,28 +33,6 @@
     public <init>(android.content.Context);
 }
 
--keep class androidx.appcompat.widget.PopupMenu { *; }
--keep class androidx.appcompat.view.menu.MenuPopupHelper { *; }
--keep class androidx.appcompat.view.menu.MenuPopup { *; }
--keep class androidx.appcompat.view.menu.StandardMenuPopup { *; }
--keep class androidx.appcompat.view.menu.CascadingMenuPopup { *; }
--keep class androidx.appcompat.widget.MenuPopupWindow { *; }
--keep class androidx.appcompat.widget.MenuPopupWindow$MenuDropDownListView { *; }
-
--keepclassmembers class androidx.appcompat.widget.PopupMenu {
-    *** mAnchor;
-    *** mPopup;
-}
-
--keepclassmembers class androidx.appcompat.** {
-    *** mPopup;
-    *** getPopup(...);
-    *** getListView(...);
-    void setForceShowIcon(boolean);
-    void setOverlapAnchor(boolean);
-    void setForceIgnoreOutsideTouch(boolean);
-}
-
 -assumenosideeffects class android.util.Log {
     public static *** v(...);
     public static *** d(...);

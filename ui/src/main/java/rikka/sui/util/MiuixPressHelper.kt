@@ -37,9 +37,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.ListView
+import android.widget.ListPopupWindow
+import android.widget.PopupMenu
 import android.widget.PopupWindow
-import androidx.appcompat.widget.ListPopupWindow
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.toColorInt
@@ -206,7 +206,7 @@ fun PopupMenu.applyMiuixPopupStyle() {
                         var bgColor = ContextCompat.getColor(listView.context, R.color.miuix_card_normal)
                         val isNight = (listView.context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
                         if (!isNight && MonetSettings.isMonetEnabled(listView.context)) {
-                            val primaryColor = listView.context.theme.resolveColor(androidx.appcompat.R.attr.colorPrimary)
+                            val primaryColor = listView.context.theme.resolveColor(R.attr.colorPrimary)
                             bgColor = ColorUtils.blendARGB(bgColor, primaryColor, 0.10f)
                         }
                         it.setBackgroundDrawable(MiuixSmoothCardDrawable(radiusPx, bgColor, false))

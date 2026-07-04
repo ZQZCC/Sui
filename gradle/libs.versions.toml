@@ -9,11 +9,10 @@ parcelablelist = "2.0.1"
 annotation = "1.10.0"
 core = "1.19.0"
 coroutines = "1.11.0"
-appcompat = "1.7.1"
-fragment = "1.8.9"
+activity = "1.8.0"
+fragment = "1.5.4"
 recyclerview = "1.4.0"
 lifecycle = "2.11.0"
-material = "1.14.0"
 dynamicanimation = "1.1.0"
 appiconloader = "1.5.0"
 spotless = "8.8.0"
@@ -31,11 +30,10 @@ androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
-google-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-dynamicanimation = { group = "androidx.dynamicanimation", name = "dynamicanimation", version.ref = "dynamicanimation" }
 appiconloader = { group = "me.zhanghai.android.appiconloader", name = "appiconloader", version.ref = "appiconloader" }
 support-annotations = { group = "com.android.support", name = "support-annotations", version.ref = "support-annotations" }

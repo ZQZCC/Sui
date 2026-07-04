@@ -47,7 +47,6 @@ import android.widget.FrameLayout;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.text.HtmlCompat;
-import com.google.android.material.color.DynamicColors;
 import dev.rikka.tools.refine.Refine;
 import java.util.Objects;
 import rikka.sui.R;
@@ -67,7 +66,7 @@ import rikka.sui.widget.MiuixBottomSheetLayout;
 public class ConfirmationDialog {
 
     private static final IBinder TOKEN = new Binder();
-    private static final Logger LOGGER = new Logger("SuiConfirmationDialog");
+    private static final Logger LOGGER = new Logger("ConfirmationDialog");
 
     private final Context context;
     private final Resources resources;
@@ -102,8 +101,8 @@ public class ConfirmationDialog {
             LOGGER.e("getGlobalSettings failed in ConfirmationDialog", e);
         }
 
-        if (monetEnabled) {
-            wrappedContext = DynamicColors.wrapContextIfAvailable(wrappedContext);
+        if (monetEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            wrappedContext.getTheme().applyStyle(R.style.Theme_Sui_Monet, true);
         }
 
         this.context = wrappedContext;
@@ -271,7 +270,7 @@ public class ConfirmationDialog {
             }
         }
         if (primaryColor == -1) {
-            primaryColor = ResourcesKt.resolveColor(context.getTheme(), androidx.appcompat.R.attr.colorPrimary);
+            primaryColor = ResourcesKt.resolveColor(context.getTheme(), R.attr.colorPrimary);
         }
 
         int btnColor;

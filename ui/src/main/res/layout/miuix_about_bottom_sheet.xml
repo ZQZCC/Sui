@@ -15,7 +15,7 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="start|center_vertical"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="?android:attr/textColorPrimary"
         android:layout_marginBottom="0dp" />
 
     <androidx.core.widget.NestedScrollView
@@ -27,7 +27,7 @@
             android:id="@+id/text_about"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="?android:attr/textColorPrimary"
             android:lineSpacingExtra="4dp"
             android:textSize="14sp" />
 
@@ -38,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:layout_marginTop="24dp"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="?android:attr/textColorPrimary"
         android:text="@string/about_button_ok"
         android:textSize="16sp"
         android:textStyle="bold"

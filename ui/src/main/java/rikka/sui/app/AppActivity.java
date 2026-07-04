@@ -25,23 +25,23 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.Toolbar;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import com.google.android.material.color.DynamicColors;
+import androidx.fragment.app.FragmentActivity;
 import rikka.sui.R;
 import rikka.sui.ktx.ResourcesKt;
 import rikka.sui.util.MonetSettings;
 
-public class AppActivity extends AppCompatActivity {
+public class AppActivity extends FragmentActivity {
 
     private final Application application;
     private final Resources resources;
@@ -80,6 +80,9 @@ public class AppActivity extends AppCompatActivity {
         setTheme(R.style.Theme_Sui);
 
         final boolean monetEnabled = MonetSettings.isMonetEnabled(this);
+        if (monetEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getTheme().applyStyle(R.style.Theme_Sui_Monet, true);
+        }
         MonetSettings.syncFromServerAsync(this, (changed, enabled) -> {
             if (!changed) {
                 return;
@@ -90,10 +93,6 @@ public class AppActivity extends AppCompatActivity {
                 }
             });
         });
-        if (monetEnabled) {
-            DynamicColors.applyToActivityIfAvailable(this);
-        }
-
         super.onCreate(savedInstanceState);
 
         try {
@@ -104,7 +103,7 @@ public class AppActivity extends AppCompatActivity {
             Toolbar toolbar = findViewById(R.id.toolbar);
 
             if (toolbar != null) {
-                setSupportActionBar(toolbar);
+                setActionBar(toolbar);
             } else {
                 android.util.Log.e("Sui", "Toolbar not found in appbar_fragment_activity layout");
             }
@@ -120,7 +119,7 @@ public class AppActivity extends AppCompatActivity {
             boolean isNight = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                     == Configuration.UI_MODE_NIGHT_YES;
             if (isNight && monetEnabled) {
-                int primaryColor = ResourcesKt.resolveColor(getTheme(), androidx.appcompat.R.attr.colorPrimary);
+                int primaryColor = ResourcesKt.resolveColor(getTheme(), R.attr.colorPrimary);
                 int blendedBg = ColorUtils.blendARGB(Color.BLACK, primaryColor, 0.10f);
                 rootView.setBackgroundColor(blendedBg);
                 if (toolbarContainer != null) {

@@ -19,30 +19,22 @@
 package rikka.sui
 
 import android.os.Bundle
+import android.os.Build
 import android.util.TypedValue
+import android.widget.Toolbar
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
+import androidx.fragment.app.FragmentActivity
 import rikka.sui.management.ManagementFragment
 import rikka.sui.util.MonetSettings
 
-class DebugActivity : AppCompatActivity() {
-    companion object {
-        init {
-            AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
-        }
-    }
-
+class DebugActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_Sui)
-        val monetEnabled = MonetSettings.isMonetEnabled(this)
-        MonetSettings.syncFromServerAsync(this)
-        if (monetEnabled) {
-            com.google.android.material.color.DynamicColors
-                .applyToActivityIfAvailable(this)
+        if (MonetSettings.isMonetEnabled(this) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            theme.applyStyle(R.style.Theme_Sui_Monet, true)
         }
+        MonetSettings.syncFromServerAsync(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -56,20 +48,20 @@ class DebugActivity : AppCompatActivity() {
         }
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
+        setActionBar(toolbar)
         try {
             val typedValue = TypedValue()
-            theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, typedValue, true)
+            theme.resolveAttribute(R.attr.colorAccent, typedValue, true)
             val accentColor = typedValue.data
             val accentHex = String.format("#%06X", 0xFFFFFF and accentColor)
             val subtitleHtml = "<font color='$accentHex'>$accentHex</font>"
             val coloredSubtitle =
                 androidx.core.text.HtmlCompat
                     .fromHtml(subtitleHtml, androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY)
-            supportActionBar?.title = "Sui(Debug)"
-            supportActionBar?.subtitle = coloredSubtitle
+            actionBar?.title = "Sui(Debug)"
+            actionBar?.subtitle = coloredSubtitle
         } catch (e: Exception) {
-            supportActionBar?.title = "Sui(Debug)"
+            actionBar?.title = "Sui(Debug)"
         }
 
         if (savedInstanceState == null) {

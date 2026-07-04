@@ -37,7 +37,7 @@ android {
         minSdk = 23
         versionCode = gitCommitCount
         versionName = moduleVersion.substring(1)
-        vectorDrawables.useSupportLibrary = true
+        vectorDrawables.useSupportLibrary = false
     }
 
     androidResources {
@@ -93,12 +93,11 @@ dependencies {
 
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-    implementation(libs.google.material)
     implementation(libs.androidx.dynamicanimation)
     implementation(libs.appiconloader)
 }

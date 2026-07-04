@@ -57,7 +57,7 @@ public class SuiActivity extends AppActivity {
 
         setContentView(R.layout.main);
         setTitle("Sui");
-        Objects.requireNonNull(getSupportActionBar()).setSubtitle(BuildConfig.VERSION_NAME);
+        Objects.requireNonNull(getActionBar()).setSubtitle(BuildConfig.VERSION_NAME);
 
         if (getSupportFragmentManager().findFragmentById(R.id.fragment_container) == null) {
             getSupportFragmentManager()
@@ -70,12 +70,12 @@ public class SuiActivity extends AppActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU /*API33/A13*/) {
             ActivityManager.TaskDescription taskDescription = new ActivityManager.TaskDescription.Builder()
                     .setLabel("Sui")
-                    .setPrimaryColor(resolveThemeColor(androidx.appcompat.R.attr.colorPrimary))
+                    .setPrimaryColor(resolveThemeColor(R.attr.colorPrimary))
                     .build();
             setTaskDescription(taskDescription);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P /*API28/A9*/) {
             setTaskDescription(new ActivityManager.TaskDescription(
-                    "Sui", 0, resolveThemeColor(androidx.appcompat.R.attr.colorPrimary)));
+                    "Sui", 0, resolveThemeColor(R.attr.colorPrimary)));
         } else {
             setTaskDescription(new ActivityManager.TaskDescription("Sui"));
         }

@@ -29,7 +29,7 @@ import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.appcompat.widget.PopupMenu
+import android.widget.PopupMenu
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.get
 import androidx.core.view.size
@@ -94,7 +94,7 @@ class ManagementAppItemViewHolder private constructor(
         var normalColor = context.getColor(R.color.miuix_card_normal)
         val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         if (!isNight && MonetSettings.isMonetEnabled(context)) {
-            val primaryColor = context.theme.resolveColor(androidx.appcompat.R.attr.colorPrimary)
+            val primaryColor = context.theme.resolveColor(R.attr.colorPrimary)
             normalColor = ColorUtils.blendARGB(normalColor, primaryColor, 0.10f)
         }
         binding.root.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(context, normalColor)
@@ -228,7 +228,7 @@ class ManagementAppItemViewHolder private constructor(
         }
 
         if (explicitAllowed || explicitAllowedShell) {
-            statusText.setTextColor(context.theme.resolveColor(androidx.appcompat.R.attr.colorAccent))
+            statusText.setTextColor(context.theme.resolveColor(R.attr.colorAccent))
         } else if (explicitDenied) {
             val isNight = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
             statusText.setTextColor(if (isNight) 0xFFFF8A80.toInt() else 0xFFFF5252.toInt())
