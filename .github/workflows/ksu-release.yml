@@ -182,9 +182,29 @@ jobs:
             done
           fi
 
-          if [ "$CURRENT_RELEASE_EXISTS" = true ] || [ "$CURRENT_TAG_EXISTS" = true ]; then
-            echo "Current immutable release/tag ${COMMUNITY_TAG} already exists, skip recreate."
+          if [ "$CURRENT_RELEASE_EXISTS" = true ]; then
+            echo "Current immutable release ${COMMUNITY_TAG} already exists, skip recreate."
             exit 0
+          fi
+
+          if [ "$CURRENT_TAG_EXISTS" = true ]; then
+            echo "Current tag ${COMMUNITY_TAG} already exists, reuse existing target."
+          else
+            TARGET_BRANCH="$(gh repo view "$TARGET_REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')"
+            test -n "$TARGET_BRANCH"
+
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+            git clone --depth 1 --branch "$TARGET_BRANCH" "https://github.com/${TARGET_REPO}.git" community-repo
+
+            pushd community-repo >/dev/null
+            git commit --allow-empty -m "release: ${VERSION_NAME}"
+            git push origin "HEAD:${TARGET_BRANCH}"
+            git tag "$COMMUNITY_TAG"
+            git push origin "refs/tags/${COMMUNITY_TAG}"
+            popd >/dev/null
           fi
 
           {
