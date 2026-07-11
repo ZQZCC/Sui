@@ -34,7 +34,6 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.view.get
 import androidx.core.view.size
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.Job
 import rikka.sui.R
 import rikka.sui.databinding.ManagementAppItemBinding
 import rikka.sui.ktx.resolveColor
@@ -50,6 +49,7 @@ import rikka.sui.util.MonetSettings
 import rikka.sui.util.UserHandleCompat
 import rikka.sui.util.applyMiuixPopupStyle
 import rikka.sui.util.colorCheckedItemsMiuixBlue
+import java.util.concurrent.Future
 
 class ManagementAppItemViewHolder private constructor(
     private val binding: ManagementAppItemBinding,
@@ -71,7 +71,7 @@ class ManagementAppItemViewHolder private constructor(
     private inline val ai get() = data.packageInfo.applicationInfo
     private inline val uid get() = ai?.uid ?: 0
 
-    private var loadIconJob: Job? = null
+    private var loadIconTask: Future<*>? = null
     private var activePopupMenu: PopupMenu? = null
 
     private val icon get() = binding.icon
@@ -109,7 +109,7 @@ class ManagementAppItemViewHolder private constructor(
     fun bind(data: AppInfo, adapter: ManagementAdapter) {
         this.data = data
         this.adapter = adapter
-        loadIconJob?.cancel()
+        loadIconTask?.cancel(true)
 
         val userId = UserHandleCompat.getUserId(uid)
         val label = data.label
@@ -118,13 +118,13 @@ class ManagementAppItemViewHolder private constructor(
         syncViewStateForFlags()
 
         val applicationInfo = ai ?: return
-        loadIconJob = AppIconCache.loadIconBitmapAsync(context, applicationInfo, userId, icon, iconSize)
+        loadIconTask = AppIconCache.loadIconBitmapAsync(context, applicationInfo, userId, icon, iconSize)
     }
 
     fun recycle() {
-        if (loadIconJob?.isActive == true) {
-            loadIconJob?.cancel()
-        }
+        loadIconTask?.cancel(true)
+        loadIconTask = null
+        AppIconCache.cancel(icon)
     }
 
     private fun showPopupMenu() {
@@ -198,7 +198,7 @@ class ManagementAppItemViewHolder private constructor(
         }
 
         popupMenu.colorCheckedItemsMiuixBlue(itemView.context)
-        popupMenu.applyMiuixPopupStyle()
+        popupMenu.applyMiuixPopupStyle(statusText)
     }
 
     private fun syncViewStateForFlags() {

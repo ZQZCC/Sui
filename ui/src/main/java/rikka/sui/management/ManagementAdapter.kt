@@ -19,27 +19,29 @@
 package rikka.sui.management
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import rikka.sui.model.AppInfo
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicInteger
 
 class ManagementAdapter(
     context: Context,
 ) : RecyclerView.Adapter<ManagementAppItemViewHolder>() {
 
     private val inflater = LayoutInflater.from(context)
-    private val adapterScope = MainScope()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val diffExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "SuiListDiff").apply { priority = Thread.NORM_PRIORITY - 1 }
+    }
+    private val updateGeneration = AtomicInteger()
     private val items = ArrayList<AppInfo>()
-    private var updateJob: Job? = null
+    private var updateFuture: Future<*>? = null
 
     init {
         setHasStableIds(true)
@@ -65,11 +67,12 @@ class ManagementAdapter(
     }
 
     fun updateData(data: List<AppInfo>) {
-        updateJob?.cancel()
+        val generation = updateGeneration.incrementAndGet()
+        updateFuture?.cancel(true)
         val newData = ArrayList(data)
+        val oldData = ArrayList(items)
 
-        updateJob = adapterScope.launch(Dispatchers.Default) {
-            val oldData = withContext(Dispatchers.Main) { ArrayList(items) }
+        updateFuture = diffExecutor.submit {
             val result = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
                 override fun getOldListSize(): Int = oldData.size
 
@@ -85,8 +88,8 @@ class ManagementAdapter(
                 override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean = oldData[oldItemPosition] == newData[newItemPosition]
             })
 
-            withContext(Dispatchers.Main) {
-                if (!isActive) return@withContext
+            mainHandler.post {
+                if (generation != updateGeneration.get()) return@post
                 items.clear()
                 items.addAll(newData)
                 result.dispatchUpdatesTo(this@ManagementAdapter)
@@ -95,8 +98,11 @@ class ManagementAdapter(
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        updateJob?.cancel()
-        adapterScope.cancel()
+        updateGeneration.incrementAndGet()
+        updateFuture?.cancel(true)
+        updateFuture = null
+        diffExecutor.shutdownNow()
+        mainHandler.removeCallbacksAndMessages(null)
         super.onDetachedFromRecyclerView(recyclerView)
     }
 }

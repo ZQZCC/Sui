@@ -36,8 +36,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import android.widget.ListView
 import android.widget.ListPopupWindow
+import android.widget.ListView
 import android.widget.PopupMenu
 import android.widget.PopupWindow
 import androidx.core.content.ContextCompat
@@ -109,20 +109,11 @@ class MiuixPressHelper : View.OnTouchListener {
     }
 }
 
-fun PopupMenu.applyMiuixPopupStyle() {
-    try {
-        val mAnchorField = this.javaClass.getDeclaredField("mAnchor")
-        mAnchorField.isAccessible = true
-        val anchor = mAnchorField.get(this) as? View
-        if (anchor != null) {
-            val loc = IntArray(2)
-            anchor.getLocationOnScreen(loc)
-            MiuixPopupState.anchorX = loc[0]
-            MiuixPopupState.anchorY = loc[1]
-        }
-    } catch (e: Exception) {
-        Log.e("Sui", "Failed to extract popup anchor", e)
-    }
+fun PopupMenu.applyMiuixPopupStyle(anchor: View) {
+    val location = IntArray(2)
+    anchor.getLocationOnScreen(location)
+    MiuixPopupState.anchorX = location[0]
+    MiuixPopupState.anchorY = location[1]
 
     this.show()
     try {

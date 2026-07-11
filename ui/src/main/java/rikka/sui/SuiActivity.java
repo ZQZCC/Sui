@@ -23,12 +23,17 @@ import android.app.Application;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
 import androidx.annotation.Nullable;
 import java.util.Objects;
 import rikka.sui.app.AppActivity;
-import rikka.sui.management.ManagementFragment;
+import rikka.sui.management.ManagementController;
+import rikka.sui.management.ManagementScreen;
 
 public class SuiActivity extends AppActivity {
+
+    private ManagementController managementController;
+    private ManagementScreen managementScreen;
 
     public SuiActivity(Application application, Resources resources) {
         super(application, resources);
@@ -55,16 +60,15 @@ public class SuiActivity extends AppActivity {
         }
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.main);
+        Object retained = getLastNonConfigurationInstance();
+        boolean loadInitially = !(retained instanceof ManagementController);
+        managementController =
+                loadInitially ? new ManagementController(getApplicationContext()) : (ManagementController) retained;
+        managementScreen = new ManagementScreen(this, managementController);
+        managementScreen.create(loadInitially);
+
         setTitle("Sui");
         Objects.requireNonNull(getActionBar()).setSubtitle(BuildConfig.VERSION_NAME);
-
-        if (getSupportFragmentManager().findFragmentById(R.id.fragment_container) == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, new ManagementFragment())
-                    .commit();
-        }
         invalidateOptionsMenu();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU /*API33/A13*/) {
@@ -74,10 +78,37 @@ public class SuiActivity extends AppActivity {
                     .build();
             setTaskDescription(taskDescription);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P /*API28/A9*/) {
-            setTaskDescription(new ActivityManager.TaskDescription(
-                    "Sui", 0, resolveThemeColor(R.attr.colorPrimary)));
+            setTaskDescription(new ActivityManager.TaskDescription("Sui", 0, resolveThemeColor(R.attr.colorPrimary)));
         } else {
             setTaskDescription(new ActivityManager.TaskDescription("Sui"));
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        if (managementScreen == null) {
+            return false;
+        }
+        managementScreen.onCreateOptionsMenu(menu, getMenuInflater());
+        return true;
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return managementController;
+    }
+
+    @Override
+    protected void onDestroy() {
+        boolean changingConfigurations = isChangingConfigurations();
+        if (managementScreen != null) {
+            managementScreen.destroy();
+            managementScreen = null;
+        }
+        if (!changingConfigurations && managementController != null) {
+            managementController.close();
+            managementController = null;
+        }
+        super.onDestroy();
     }
 }

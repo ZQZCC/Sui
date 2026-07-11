@@ -1,22 +1,27 @@
 package rikka.sui.widget
 
+import android.app.Dialog
 import android.content.Context
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
-import androidx.activity.ComponentDialog
-import androidx.activity.OnBackPressedCallback
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import rikka.sui.R
 
 class MiuixBottomSheetDialog(
     context: Context,
     private val contentView: View,
-) : ComponentDialog(context, R.style.MiuixBottomSheetDialogStyle) {
+) : Dialog(context, R.style.MiuixBottomSheetDialogStyle) {
 
     private lateinit var layout: MiuixBottomSheetLayout
     private var dimOverlay: View? = null
+    private var backCallback: Any? = null
 
     private fun setupDimOverlay() {
         var actContext = context
@@ -85,26 +90,47 @@ class MiuixBottomSheetDialog(
             it.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             it.setBackgroundDrawableResource(android.R.color.transparent)
 
-            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(it, false)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                it.setDecorFitsSystemWindows(false)
+            } else {
+                it.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            }
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 it.isNavigationBarContrastEnforced = false
                 it.isStatusBarContrastEnforced = false
             }
 
-            it.statusBarColor = android.graphics.Color.TRANSPARENT
-            it.navigationBarColor = android.graphics.Color.TRANSPARENT
+            it.statusBarColor = Color.TRANSPARENT
+            it.navigationBarColor = Color.TRANSPARENT
             it.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         }
 
-        onBackPressedDispatcher.addCallback(
-            this,
-            object : OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            setOnKeyListener { _, keyCode, event ->
+                if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP && event.repeatCount == 0) {
                     layout.dismiss()
+                    true
+                } else {
+                    false
                 }
-            },
-        )
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && backCallback == null) {
+            val callback = OnBackInvokedCallback { layout.dismiss() }
+            window?.onBackInvokedDispatcher?.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                callback,
+            )
+            backCallback = callback
+        }
     }
 
     override fun show() {
@@ -117,7 +143,13 @@ class MiuixBottomSheetDialog(
     }
 
     override fun onStop() {
-        super.onStop()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            (backCallback as? OnBackInvokedCallback)?.let { callback ->
+                window?.onBackInvokedDispatcher?.unregisterOnBackInvokedCallback(callback)
+            }
+            backCallback = null
+        }
         removeDimOverlay()
+        super.onStop()
     }
 }

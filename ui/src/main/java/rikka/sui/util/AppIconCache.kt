@@ -24,41 +24,37 @@ import android.content.ContextWrapper
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.util.LruCache
 import android.widget.ImageView
-import androidx.collection.LruCache
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.zhanghai.android.appiconloader.AppIconLoader
+import rikka.sui.R
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.coroutines.CoroutineContext
+import java.util.concurrent.Future
 
-object AppIconCache : CoroutineScope {
+object AppIconCache {
 
     private class AppIconLruCache(maxSize: Int) : LruCache<String, Bitmap>(maxSize) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
     }
 
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main
-
     private val lruCache: LruCache<String, Bitmap>
-
-    private val dispatcher: CoroutineDispatcher
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val loadIconExecutor: ExecutorService
 
     private val appIconLoaders = ConcurrentHashMap<Int, AppIconLoader>()
 
     init {
         // Initialize app icon lru cache
         val maxMemory = Runtime.getRuntime().maxMemory() / 1024
-        val availableCacheSize = (maxMemory / 4).toInt()
+        val availableCacheSize = (maxMemory / 8)
+            .coerceAtMost(MAX_CACHE_SIZE_KB.toLong())
+            .coerceAtLeast(1024L)
+            .toInt()
         lruCache = AppIconLruCache(availableCacheSize)
 
         // Initialize load icon scheduler
@@ -67,25 +63,19 @@ object AppIconCache : CoroutineScope {
         } catch (ignored: Exception) {
             1
         }
-        val threadCount = 1.coerceAtLeast(availableProcessorsCount / 2)
-        val loadIconExecutor: Executor = Executors.newFixedThreadPool(threadCount) { r ->
+        val threadCount = (availableProcessorsCount / 2).coerceIn(1, 4)
+        loadIconExecutor = Executors.newFixedThreadPool(threadCount) { r ->
             Thread(r).apply {
+                name = "SuiIconLoader"
                 priority = Thread.MIN_PRIORITY
             }
         }
-        dispatcher = loadIconExecutor.asCoroutineDispatcher()
     }
-
-    fun dispatcher(): CoroutineDispatcher = dispatcher
 
     private fun get(packageName: String, userId: Int, size: Int): Bitmap? = lruCache["$packageName:$userId:$size"]
 
     private fun put(packageName: String, userId: Int, size: Int, bitmap: Bitmap) {
         lruCache.put("$packageName:$userId:$size", bitmap)
-    }
-
-    private fun remove(packageName: String, userId: Int, size: Int) {
-        lruCache.remove("$packageName:$userId:$size")
     }
 
     private fun loadIconBitmap(context: Context, info: ApplicationInfo, userId: Int, size: Int): Bitmap {
@@ -128,7 +118,9 @@ object AppIconCache : CoroutineScope {
         userId: Int,
         view: ImageView,
         size: Int,
-    ): Job? {
+    ): Future<*>? {
+        val requestKey = "${info.packageName}:$userId:$size"
+        view.setTag(R.id.tag_app_icon_request, requestKey)
         val cachedBitmap = get(info.packageName, userId, size)
         if (cachedBitmap != null) {
             view.setImageBitmap(cachedBitmap)
@@ -137,24 +129,31 @@ object AppIconCache : CoroutineScope {
 
         view.setImageDrawable(null)
 
-        return launch {
+        return loadIconExecutor.submit {
             val bitmap = try {
-                withContext(dispatcher) {
-                    loadIconBitmap(context, info, userId, size)
-                }
-            } catch (e: CancellationException) {
-                // do nothing if canceled
-                return@launch
+                loadIconBitmap(context, info, userId, size)
             } catch (e: Throwable) {
                 Log.w("AppIconCache", "Load icon for $userId:${info.packageName}", e)
                 null
             }
 
-            if (bitmap != null) {
+            if (Thread.currentThread().isInterrupted) return@submit
+            mainHandler.post {
+                if (view.getTag(R.id.tag_app_icon_request) != requestKey) return@post
                 view.setImageBitmap(bitmap)
-            } else {
-                view.setImageBitmap(null)
             }
         }
     }
+
+    @JvmStatic
+    fun cancel(view: ImageView) {
+        view.setTag(R.id.tag_app_icon_request, null)
+    }
+
+    @JvmStatic
+    fun releaseLoaders() {
+        appIconLoaders.clear()
+    }
+
+    private const val MAX_CACHE_SIZE_KB = 16 * 1024
 }

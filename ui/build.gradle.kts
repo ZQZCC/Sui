@@ -82,9 +82,6 @@ dependencies {
 
     implementation(libs.refine.runtime)
 
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
-
     implementation(project(":aidl"))
     implementation(project(":api"))
     compileOnly(libs.hidden.stub)
@@ -93,10 +90,7 @@ dependencies {
 
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.fragment)
     implementation(libs.androidx.recyclerview)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     implementation(libs.androidx.dynamicanimation)
     implementation(libs.appiconloader)

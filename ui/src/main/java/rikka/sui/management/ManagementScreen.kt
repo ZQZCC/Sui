@@ -18,6 +18,7 @@
  */
 package rikka.sui.management
 
+import android.app.Activity
 import android.content.res.Configuration
 import android.graphics.Typeface
 import android.os.Bundle
@@ -39,27 +40,20 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.widget.PopupMenu
 import android.widget.SearchView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
-import androidx.core.view.MenuHost
-import androidx.core.view.MenuProvider
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.isGone
-import androidx.core.view.isVisible
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DefaultItemAnimator
 import rikka.sui.BuildConfig
 import rikka.sui.R
-import rikka.sui.app.AppFragment
 import rikka.sui.databinding.ManagementBinding
 import rikka.sui.ktx.resolveColor
 import rikka.sui.model.AppInfo
 import rikka.sui.server.SuiConfig
+import rikka.sui.util.AppIconCache
 import rikka.sui.util.BridgeServiceClient
 import rikka.sui.util.EdgeDragFastScroller
 import rikka.sui.util.MiuixBounceEdgeEffectFactory
@@ -71,17 +65,26 @@ import rikka.sui.util.MiuixSquircleUtils
 import rikka.sui.util.applyMiuixPopupStyle
 import rikka.sui.widget.MiuixBottomSheetDialog
 
-class ManagementFragment : AppFragment() {
+class ManagementScreen(
+    private val activity: Activity,
+    private val controller: ManagementController,
+) {
 
-    private var _binding: ManagementBinding? = null
-    val binding: ManagementBinding get() = _binding!!
+    private lateinit var binding: ManagementBinding
+    private val adapter by lazy { ManagementAdapter(activity) }
+    private var destroyed = false
 
-    private val viewModel by lazy { ViewModelProvider(this)[ManagementViewModel::class.java] }
-    private val adapter by lazy { ManagementAdapter(requireContext()) }
+    private val stateListener = ManagementController.Listener {
+        when (it.status) {
+            Status.LOADING -> onLoading()
+            Status.SUCCESS -> onSuccess(it)
+            Status.ERROR -> onError(it.error)
+        }
+    }
 
     private val bounceEdgeEffectFactory by lazy {
         MiuixBounceEdgeEffectFactory {
-            context?.let { viewModel.reload(it) }
+            controller.reload()
         }
     }
 
@@ -90,7 +93,7 @@ class ManagementFragment : AppFragment() {
     private var overflowPopupMenu: PopupMenu? = null
 
     private fun cancelRefreshForFastScroll() {
-        if (!bounceEdgeEffectFactory.isRefreshActive() && viewModel.appList.value?.status != Status.LOADING) {
+        if (!bounceEdgeEffectFactory.isRefreshActive() && controller.state.status != Status.LOADING) {
             return
         }
 
@@ -98,70 +101,16 @@ class ManagementFragment : AppFragment() {
         binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE
         binding.pullToRefreshIndicator.dragOffset = 0f
         binding.pullToRefreshIndicator.pullProgress = 0f
-        viewModel.cancelReload()
+        controller.cancelReload()
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = ManagementBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    fun create(loadInitially: Boolean) {
+        val container = activity.findViewById<ViewGroup>(R.id.fragment_container)
+        binding = ManagementBinding.inflate(activity.layoutInflater, container, false)
+        container.removeAllViews()
+        container.addView(binding.root)
+        val view = binding.root
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        val menuHost: MenuHost = requireActivity()
-        menuHost.addMenuProvider(
-            object : MenuProvider {
-                override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                    menuInflater.inflate(R.menu.management_menu, menu)
-
-                    val searchItem = menu.findItem(R.id.action_search)
-                    val searchView = searchItem.actionView as SearchView
-
-                    var isSearchViewInitialized = false
-                    searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                        override fun onQueryTextSubmit(query: String?): Boolean = false
-                        override fun onQueryTextChange(newText: String?): Boolean {
-                            if (!isSearchViewInitialized && newText.isNullOrEmpty()) {
-                                isSearchViewInitialized = true
-                                return true
-                            }
-                            viewModel.filter(newText)
-                            return true
-                        }
-                    })
-                    val overflowItem = menu.findItem(R.id.action_overflow)
-                    requireActivity().findViewById<View>(R.id.toolbar)?.post {
-                        val searchButtonView = requireActivity().findViewById<View>(R.id.action_search)
-                        if (searchButtonView != null) {
-                            searchButtonView.background = ContextCompat.getDrawable(requireContext(), R.drawable.miuix_action_icon_bg)
-                            searchButtonView.setOnLongClickListener { true }
-                            searchButtonView.setOnTouchListener(MiuixPressHelper())
-                        }
-
-                        val overflowButtonView = requireActivity().findViewById<View>(R.id.action_overflow)
-                        if (overflowButtonView != null) {
-                            overflowButtonView.background = ContextCompat.getDrawable(requireContext(), R.drawable.miuix_action_icon_bg)
-                            overflowButtonView.setOnLongClickListener { true }
-                            overflowButtonView.setOnTouchListener(MiuixPressHelper())
-                            overflowButtonView.setOnClickListener { anchorView ->
-                                showOverflowPopupMenu(anchorView)
-                            }
-                        } else {
-                            overflowItem.setOnMenuItemClickListener {
-                                showOverflowPopupMenu(requireActivity().findViewById(R.id.toolbar))
-                                true
-                            }
-                        }
-                    }
-                }
-
-                override fun onMenuItemSelected(menuItem: MenuItem): Boolean = false
-            },
-            viewLifecycleOwner,
-            Lifecycle.State.RESUMED,
-        )
-
-        val context = view.context
         view.post {
             val parentView = view.parent as? ViewGroup
             if (parentView != null) {
@@ -177,13 +126,18 @@ class ManagementFragment : AppFragment() {
                 }
             }
         }
-        val density = requireContext().resources.displayMetrics.density
+        val density = activity.resources.displayMetrics.density
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+        binding.root.setOnApplyWindowInsetsListener { _, insets ->
+            @Suppress("DEPRECATION")
+            val navBarBottom = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+            } else {
+                insets.systemWindowInsetBottom
+            }
 
-            val basePaddingBottom = if (navBars.bottom > 0) (32f * density).toInt() else (16f * density).toInt()
-            val extraPadding = Integer.max(0, navBars.bottom - basePaddingBottom)
+            val basePaddingBottom = if (navBarBottom > 0) (32f * density).toInt() else (16f * density).toInt()
+            val extraPadding = Integer.max(0, navBarBottom - basePaddingBottom)
 
             binding.list.setPadding(
                 binding.list.paddingLeft,
@@ -197,20 +151,22 @@ class ManagementFragment : AppFragment() {
 
         bounceEdgeEffectFactory.stateListener = object : MiuixBounceEdgeEffectFactory.PullStateChangeListener {
             override fun onPullStateChanged(dragOffset: Float, state: MiuixPullToRefreshView.RefreshState, thresholdOffset: Float, maxDragDistancePx: Float) {
-                _binding?.pullToRefreshIndicator?.apply {
-                    this.state = state
-                    this.dragOffset = dragOffset
-                    this.thresholdOffset = thresholdOffset
-                    this.maxDragDistancePx = maxDragDistancePx
-                    val progress = dragOffset / thresholdOffset
-                    this.pullProgress = progress
+                if (!destroyed) {
+                    binding.pullToRefreshIndicator.apply {
+                        this.state = state
+                        this.dragOffset = dragOffset
+                        this.thresholdOffset = thresholdOffset
+                        this.maxDragDistancePx = maxDragDistancePx
+                        val progress = dragOffset / thresholdOffset
+                        this.pullProgress = progress
+                    }
                 }
             }
         }
 
         binding.list.apply {
             setHasFixedSize(true)
-            adapter = this@ManagementFragment.adapter
+            adapter = this@ManagementScreen.adapter
             (itemAnimator as DefaultItemAnimator).supportsChangeAnimations = false
             this.edgeEffectFactory = bounceEdgeEffectFactory
             this.setItemViewCacheSize(20)
@@ -220,18 +176,59 @@ class ManagementFragment : AppFragment() {
             }
         }
 
-        viewModel.appList.observe(viewLifecycleOwner) {
-            when (it?.status) {
-                Status.LOADING -> onLoading()
-                Status.SUCCESS -> onSuccess(it)
-                Status.ERROR -> onError(it.error)
-                else -> {}
-            }
-        }
-        if (savedInstanceState == null) {
-            viewModel.reload(requireContext())
+        controller.attach(stateListener)
+        if (loadInitially) {
+            controller.reload()
         }
     }
+
+    fun onCreateOptionsMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflate(R.menu.management_menu, menu)
+
+        val searchItem = menu.findItem(R.id.action_search)
+        val searchView = searchItem.actionView as SearchView
+        var isSearchViewInitialized = false
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean = false
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                if (!isSearchViewInitialized && newText.isNullOrEmpty()) {
+                    isSearchViewInitialized = true
+                    return true
+                }
+                controller.filter(newText)
+                return true
+            }
+        })
+        controller.query?.takeIf(String::isNotEmpty)?.let { query ->
+            searchItem.expandActionView()
+            searchView.setQuery(query, false)
+        }
+
+        val overflowItem = menu.findItem(R.id.action_overflow)
+        activity.findViewById<View>(R.id.toolbar)?.post {
+            val searchButtonView = activity.findViewById<View>(R.id.action_search)
+            if (searchButtonView != null) {
+                searchButtonView.background = ContextCompat.getDrawable(activity, R.drawable.miuix_action_icon_bg)
+                searchButtonView.setOnLongClickListener { true }
+                searchButtonView.setOnTouchListener(MiuixPressHelper())
+            }
+
+            val overflowButtonView = activity.findViewById<View>(R.id.action_overflow)
+            if (overflowButtonView != null) {
+                overflowButtonView.background = ContextCompat.getDrawable(activity, R.drawable.miuix_action_icon_bg)
+                overflowButtonView.setOnLongClickListener { true }
+                overflowButtonView.setOnTouchListener(MiuixPressHelper())
+                overflowButtonView.setOnClickListener(::showOverflowPopupMenu)
+            } else {
+                overflowItem.setOnMenuItemClickListener {
+                    showOverflowPopupMenu(activity.findViewById(R.id.toolbar))
+                    true
+                }
+            }
+        }
+    }
+
     private fun showOverflowPopupMenu(anchorView: View) {
         val currentTime = SystemClock.elapsedRealtime()
         if (currentTime - lastPopupDismissTime < 200 || currentTime - lastMenuClickTime < 300) {
@@ -245,7 +242,7 @@ class ManagementFragment : AppFragment() {
             return
         }
 
-        val contextWrapper = ContextThemeWrapper(requireContext(), R.style.Theme_Sui_PopupMenu_OverflowRightOffset)
+        val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_Sui_PopupMenu_OverflowRightOffset)
         val popupMenu = PopupMenu(contextWrapper, anchorView, Gravity.END)
         overflowPopupMenu = popupMenu
         popupMenu.inflate(R.menu.overflow_popup_menu)
@@ -259,11 +256,11 @@ class ManagementFragment : AppFragment() {
                 overflowPopupMenu = null
             }
         }
-        MiuixPopupDimOverlay.show(requireActivity())
+        MiuixPopupDimOverlay.show(activity)
 
-        val highlightColor = requireContext().theme.resolveColor(R.attr.colorPrimary)
+        val highlightColor = activity.theme.resolveColor(R.attr.colorPrimary)
         val filterItem = popupMenu.menu.findItem(R.id.action_filter_shizuku)
-        val isChecked = viewModel.showOnlyShizukuApps
+        val isChecked = controller.showOnlyShizukuApps
         filterItem?.isChecked = isChecked
 
         filterItem?.title?.let { title ->
@@ -283,7 +280,7 @@ class ManagementFragment : AppFragment() {
         }
 
         val monetItem = popupMenu.menu.findItem(R.id.action_monet)
-        val isMonetEnabled = viewModel.isMonetEnabled
+        val isMonetEnabled = controller.isMonetEnabled
         monetItem?.isChecked = isMonetEnabled
 
         monetItem?.title?.let { title ->
@@ -305,11 +302,10 @@ class ManagementFragment : AppFragment() {
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_filter_shizuku -> {
-                    val newState = !viewModel.showOnlyShizukuApps
-                    val context = requireContext()
-                    viewModel.toggleShizukuFilter(newState, context) { success ->
+                    val newState = !controller.showOnlyShizukuApps
+                    controller.toggleShizukuFilter(newState) { success ->
                         if (!success) {
-                            android.widget.Toast.makeText(context, "Failed to apply filter", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, "Failed to apply filter", Toast.LENGTH_SHORT).show()
                         }
                     }
                     true
@@ -323,10 +319,10 @@ class ManagementFragment : AppFragment() {
                 R.id.action_add_shortcut -> {
                     try {
                         BridgeServiceClient.requestPinnedShortcut()
-                        Toast.makeText(requireContext(), R.string.toast_request_shortcut, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, R.string.toast_request_shortcut, Toast.LENGTH_SHORT).show()
                     } catch (e: Throwable) {
                         android.util.Log.e("SuiShortcutRPC", "Failed to request pinned shortcut via RPC", e)
-                        Toast.makeText(requireContext(), getString(R.string.toast_request_shortcut_failed, e.message), Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, activity.getString(R.string.toast_request_shortcut_failed, e.message), Toast.LENGTH_LONG).show()
                     }
                     true
                 }
@@ -337,12 +333,11 @@ class ManagementFragment : AppFragment() {
                 }
 
                 R.id.action_monet -> {
-                    val context = requireContext()
-                    viewModel.toggleMonetSetting(context) { success ->
+                    controller.toggleMonetSetting { success ->
                         if (success) {
-                            activity?.recreate()
+                            activity.recreate()
                         } else {
-                            android.widget.Toast.makeText(context, "Failed to toggle Monet", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, "Failed to toggle Monet", Toast.LENGTH_SHORT).show()
                         }
                     }
                     true
@@ -351,10 +346,10 @@ class ManagementFragment : AppFragment() {
                 else -> false
             }
         }
-        popupMenu.applyMiuixPopupStyle()
+        popupMenu.applyMiuixPopupStyle(anchorView)
     }
     private fun showBatchOptionsMenu(anchorView: View) {
-        val contextWrapper = ContextThemeWrapper(requireContext(), R.style.Theme_Sui_PopupMenu_OverflowRightOffset)
+        val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_Sui_PopupMenu_OverflowRightOffset)
         val popupMenu = PopupMenu(contextWrapper, anchorView, Gravity.END)
         popupMenu.inflate(R.menu.batch_options_menu)
 
@@ -363,12 +358,12 @@ class ManagementFragment : AppFragment() {
             MiuixPopupDimOverlay.hide()
             anchorView.isActivated = false
         }
-        MiuixPopupDimOverlay.show(requireActivity())
+        MiuixPopupDimOverlay.show(activity)
 
-        val currentDefaultMode = viewModel.appList.value?.data?.firstOrNull()?.defaultFlags
+        val currentDefaultMode = controller.state.data?.firstOrNull()?.defaultFlags
             ?.and(SuiConfig.MASK_PERMISSION) ?: 0
 
-        val highlightColor = requireContext().theme.resolveColor(R.attr.colorPrimary)
+        val highlightColor = activity.theme.resolveColor(R.attr.colorPrimary)
 
         val menu = popupMenu.menu
         for (i in 0 until menu.size()) {
@@ -416,13 +411,13 @@ class ManagementFragment : AppFragment() {
             }
             true
         }
-        popupMenu.applyMiuixPopupStyle()
+        popupMenu.applyMiuixPopupStyle(anchorView)
     }
     private fun performBatchUpdate(targetMode: Int) {
         if (adapter.itemCount == 0) {
             binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.REFRESHING
         }
-        viewModel.batchUpdate(targetMode, requireContext())
+        controller.batchUpdate(targetMode)
     }
 
     @android.annotation.SuppressLint("StringFormatInvalid")
@@ -433,17 +428,17 @@ class ManagementFragment : AppFragment() {
             "Unknown"
         }
         val message = SpannableStringBuilder().apply {
-            append(getString(R.string.about_version, versionName))
+            append(activity.getString(R.string.about_version, versionName))
             val break1 = length
             append("\n\n")
             setSpan(RelativeSizeSpan(0.5f), break1, break1 + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            append(getString(R.string.about_license_part1))
+            append(activity.getString(R.string.about_license_part1))
             append(" ")
             val startGithub = length
-            append(getString(R.string.about_license_part2))
+            append(activity.getString(R.string.about_license_part2))
             setSpan(URLSpan("https://github.com/XiaoTong6666/Sui"), startGithub, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             append(" ")
-            append(getString(R.string.about_license_part3))
+            append(activity.getString(R.string.about_license_part3))
             val break2 = length
             append("\n\n")
             setSpan(RelativeSizeSpan(0.5f), break2, break2 + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -462,7 +457,7 @@ class ManagementFragment : AppFragment() {
             )
 
             val contributorsNamesString = githubLinks.keys.joinToString(", ")
-            val contributorsText = getString(R.string.about_contributors, contributorsNamesString)
+            val contributorsText = activity.getString(R.string.about_contributors, contributorsNamesString)
             val spannableContributors = SpannableStringBuilder(contributorsText)
 
             for ((name, link) in githubLinks) {
@@ -482,22 +477,22 @@ class ManagementFragment : AppFragment() {
             append(spannableContributors)
         }
 
-        val contentView = layoutInflater.inflate(R.layout.miuix_about_bottom_sheet, null)
+        val contentView = activity.layoutInflater.inflate(R.layout.miuix_about_bottom_sheet, null)
 
         val root = contentView.findViewById<android.widget.LinearLayout>(R.id.miuix_bottom_sheet_root)
         val titleView = contentView.findViewById<android.widget.TextView>(R.id.text_title)
         val textView = contentView.findViewById<android.widget.TextView>(R.id.text_about)
         val buttonOk = contentView.findViewById<android.widget.TextView>(R.id.button_ok)
-        val density = requireContext().resources.displayMetrics.density
+        val density = activity.resources.displayMetrics.density
 
-        val sheetColor = ContextCompat.getColor(requireContext(), R.color.miuix_bottom_sheet_bg_color)
-        val baseRadiusPx = MiuixSquircleUtils.getBottomCornerRadius(requireContext())
+        val sheetColor = ContextCompat.getColor(activity, R.color.miuix_bottom_sheet_bg_color)
+        val baseRadiusPx = MiuixSquircleUtils.getBottomCornerRadius(activity)
         val dynamicRadiusPx = baseRadiusPx + 12f * density
         root?.background = MiuixSmoothCardDrawable(dynamicRadiusPx, sheetColor, topCornersOnly = false)
 
-        val primaryColor = requireContext().theme.resolveColor(R.attr.colorPrimary)
-        val isNight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val isMonetEnabled = viewModel.isMonetEnabled
+        val primaryColor = activity.theme.resolveColor(R.attr.colorPrimary)
+        val isNight = (activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val isMonetEnabled = controller.isMonetEnabled
 
         val btnColor = if (isMonetEnabled) {
             if (isNight) {
@@ -506,11 +501,11 @@ class ManagementFragment : AppFragment() {
                 ColorUtils.blendARGB(sheetColor, primaryColor, 0.10f)
             }
         } else {
-            requireContext().getColor(R.color.miuix_button_bg_color)
+            activity.getColor(R.color.miuix_button_bg_color)
         }
         val btnRadiusPx = 16f * density
         buttonOk?.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(
-            requireContext(),
+            activity,
             btnColor,
             16f,
             topCornersOnly = false,
@@ -522,13 +517,18 @@ class ManagementFragment : AppFragment() {
         val basePaddingBottomPx = 24f * density
 
         if (root != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-                val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            root.setOnApplyWindowInsetsListener { v, insets ->
+                @Suppress("DEPRECATION")
+                val navBarBottom = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+                } else {
+                    insets.systemWindowInsetBottom
+                }
                 v.setPadding(
                     v.paddingLeft,
                     v.paddingTop,
                     v.paddingRight,
-                    (basePaddingBottomPx + bottomPaddingOffset + navBars.bottom).toInt(),
+                    (basePaddingBottomPx + bottomPaddingOffset + navBarBottom).toInt(),
                 )
                 insets
             }
@@ -538,7 +538,7 @@ class ManagementFragment : AppFragment() {
         textView?.text = message
         textView?.movementMethod = LinkMovementMethod.getInstance()
 
-        val bottomSheetDialog = MiuixBottomSheetDialog(requireContext(), contentView)
+        val bottomSheetDialog = MiuixBottomSheetDialog(activity, contentView)
         buttonOk?.setOnClickListener {
             bottomSheetDialog.dismiss()
         }
@@ -546,21 +546,26 @@ class ManagementFragment : AppFragment() {
         bottomSheetDialog.show()
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+    fun destroy() {
+        destroyed = true
+        controller.detach(stateListener)
+        overflowPopupMenu?.dismiss()
+        overflowPopupMenu = null
+        binding.list.adapter = null
+        bounceEdgeEffectFactory.stateListener = null
+        AppIconCache.releaseLoaders()
         MiuixPopupDimOverlay.cleanUp()
-        _binding = null
     }
 
     private fun onLoading() {
         if (adapter.itemCount == 0) {
-            binding.list.isGone = true
+            binding.list.visibility = View.GONE
             binding.pullToRefreshIndicator.apply {
                 state = MiuixPullToRefreshView.RefreshState.REFRESHING
                 pullProgress = 1f
 
                 post {
-                    val targetOffset = (parent as? View)?.height?.toFloat() ?: (resources.displayMetrics.heightPixels.toFloat() * 0.8f)
+                    val targetOffset = (parent as? View)?.height?.toFloat() ?: (activity.resources.displayMetrics.heightPixels.toFloat() * 0.8f)
                     thresholdOffset = targetOffset
                     dragOffset = targetOffset
                     invalidate()
@@ -570,13 +575,13 @@ class ManagementFragment : AppFragment() {
     }
 
     private fun onError(e: Throwable?) {
-        binding.list.isVisible = true
+        binding.list.visibility = View.VISIBLE
         bounceEdgeEffectFactory.finishRefresh()
         binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE
     }
 
     private fun onSuccess(data: Resource<List<AppInfo>?>) {
-        binding.list.isVisible = true
+        binding.list.visibility = View.VISIBLE
         bounceEdgeEffectFactory.finishRefresh()
         binding.pullToRefreshIndicator.state = MiuixPullToRefreshView.RefreshState.IDLE
 

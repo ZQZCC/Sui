@@ -19,7 +19,7 @@
   -->
 
 <resources>
-    <style name="Widget.Sui.PopupMenu.Base">
+    <style name="Widget.Sui.PopupMenu.Base" parent="@android:style/Widget.Material.PopupMenu">
         <item name="android:popupBackground">@drawable/miuix_popup_background</item>
         <item name="android:popupElevation">8dp</item>
         <item name="android:dropDownVerticalOffset">4dp</item>
