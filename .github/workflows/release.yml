@@ -9,7 +9,7 @@ on:
       release_title:
         required: true
         type: string
-      delete_existing_assets:
+      rolling_release:
         required: true
         type: boolean
       version_name:
@@ -19,6 +19,9 @@ on:
         required: true
         type: string
       commit_sha:
+        required: true
+        type: string
+      commit_full_sha:
         required: true
         type: string
       commit_url:
@@ -64,29 +67,6 @@ jobs:
         with:
           name: build-metadata
           path: dist/metadata
-
-      - name: Delete existing release assets
-        if: ${{ inputs.delete_existing_assets }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: |
-          set -euo pipefail
-
-          RELEASE_JSON="$(gh api "repos/${{ github.repository }}/releases/tags/${RELEASE_TAG}" 2>/dev/null || true)"
-          RELEASE_ID="$(echo "$RELEASE_JSON" | jq -r '.id // empty')"
-
-          if [ -z "$RELEASE_ID" ]; then
-            echo "Release ${RELEASE_TAG} does not exist, skip asset deletion."
-            exit 0
-          fi
-
-          gh api --paginate "repos/${{ github.repository }}/releases/${RELEASE_ID}/assets" --jq '.[].id' |
-          while read -r ASSET_ID; do
-            [ -n "$ASSET_ID" ] || continue
-            echo "Delete old asset: $ASSET_ID"
-            gh api -X DELETE "repos/${{ github.repository }}/releases/assets/${ASSET_ID}"
-          done
 
       - name: Prepare release note
         env:
@@ -136,10 +116,33 @@ jobs:
           draft: false
           prerelease: false
           body_path: release-note.md
-          overwrite_files: ${{ inputs.delete_existing_assets }}
+          overwrite_files: ${{ inputs.rolling_release }}
           fail_on_unmatched_files: true
           files: |
             dist/zips/Sui-*-release.zip
             dist/zips/Sui-*-debug.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Move rolling release tag to the built commit
+        if: ${{ inputs.rolling_release }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          COMMIT_FULL_SHA: ${{ inputs.commit_full_sha }}
+        run: |
+          set -euo pipefail
+
+          tag_ref="repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}"
+          if gh api "$tag_ref" >/dev/null 2>&1; then
+            gh api --method PATCH "$tag_ref" \
+              -f sha="$COMMIT_FULL_SHA" \
+              -F force=true >/dev/null
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${RELEASE_TAG}" \
+              -f sha="$COMMIT_FULL_SHA" >/dev/null
+          fi
+
+          actual_sha="$(gh api "$tag_ref" --jq '.object.sha')"
+          test "$actual_sha" = "$COMMIT_FULL_SHA"
