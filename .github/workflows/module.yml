@@ -96,8 +96,14 @@ jobs:
           set -euo pipefail
 
           release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/nightly" --jq '.id')"
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" \
-            --jq '.[] | "\(.id)\t\(.name)"' |
+          assets_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100")"
+
+          jq -e --arg name "$CURRENT_RELEASE" \
+            '[.[] | select(.name == $name)] | length == 1' <<<"$assets_json" >/dev/null
+          jq -e --arg name "$CURRENT_DEBUG" \
+            '[.[] | select(.name == $name)] | length == 1' <<<"$assets_json" >/dev/null
+
+          jq -r '.[] | [.id, .name] | @tsv' <<<"$assets_json" |
           while IFS=$'\t' read -r asset_id asset_name; do
             if [ "$asset_name" = "$CURRENT_RELEASE" ] || [ "$asset_name" = "$CURRENT_DEBUG" ]; then
               continue
@@ -132,3 +138,91 @@ jobs:
       build_duration: ${{ needs.build.outputs.build_duration }}
       release_sha256: ${{ needs.build.outputs.release_sha256 }}
     secrets: inherit
+
+  verify-update:
+    name: Verify module update chain
+    needs:
+      - build
+      - release
+      - pages
+      - cleanup-nightly
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Download module zips
+        uses: actions/download-artifact@v8
+        with:
+          name: module-zips
+          path: dist/zips
+
+      - name: Verify package, metadata, tag, and assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_RELEASE: ${{ needs.build.outputs.release_zip_name }}
+          CURRENT_DEBUG: ${{ needs.build.outputs.debug_zip_name }}
+          EXPECTED_VERSION: ${{ needs.build.outputs.version_short }}
+          EXPECTED_VERSION_CODE: ${{ needs.build.outputs.version_code }}
+          EXPECTED_COMMIT: ${{ needs.build.outputs.commit_full_sha }}
+          UPDATE_JSON_URL: https://raw.githubusercontent.com/${{ github.repository }}/pages/sui_zygisk.json
+          CHANGELOG_URL: https://raw.githubusercontent.com/${{ github.repository }}/pages/README.md
+        run: |
+          set -euo pipefail
+
+          release_zip="dist/zips/${CURRENT_RELEASE}"
+          test -f "$release_zip"
+
+          module_prop="$(unzip -p "$release_zip" module.prop)"
+          prop_version_code="$(printf '%s\n' "$module_prop" | sed -n 's/^versionCode=//p' | head -n1)"
+          prop_update_json="$(printf '%s\n' "$module_prop" | sed -n 's/^updateJson=//p' | head -n1)"
+          test "$prop_version_code" = "$EXPECTED_VERSION_CODE"
+          test "$prop_update_json" = "$UPDATE_JSON_URL"
+
+          expected_zip_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/nightly/${CURRENT_RELEASE}"
+          validate_metadata() {
+            jq -e \
+              --argjson version_code "$EXPECTED_VERSION_CODE" \
+              --arg version "$EXPECTED_VERSION" \
+              --arg zip_url "$expected_zip_url" \
+              --arg changelog "$CHANGELOG_URL" \
+              '.versionCode == $version_code and .version == $version and .zipUrl == $zip_url and .changelog == $changelog' \
+              >/dev/null
+          }
+
+          pages_json="$(
+            gh api "repos/${GITHUB_REPOSITORY}/contents/sui_zygisk.json?ref=pages" --jq '.content' |
+              base64 --decode
+          )"
+          validate_metadata <<<"$pages_json"
+
+          raw_ready=false
+          for attempt in {1..30}; do
+            raw_json="$(curl -fsSL "${UPDATE_JSON_URL}?run=${GITHUB_RUN_ID}-${attempt}" || true)"
+            if [ -n "$raw_json" ] && validate_metadata <<<"$raw_json"; then
+              raw_ready=true
+              break
+            fi
+            echo "Wait for raw update metadata (${attempt}/30)"
+            sleep 2
+          done
+          test "$raw_ready" = true
+
+          tag_sha="$(gh api -H 'Cache-Control: no-cache' \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/nightly" --jq '.object.sha')"
+          test "$tag_sha" = "$EXPECTED_COMMIT"
+
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/nightly" --jq '.id')"
+          assets_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100")"
+          jq -e \
+            --arg release "$CURRENT_RELEASE" \
+            --arg debug "$CURRENT_DEBUG" \
+            '([.[] | select(.name | test("^Sui-.*-(release|debug)\\.zip$")) | .name] | sort) == ([$release, $debug] | sort)' \
+            <<<"$assets_json" >/dev/null
+
+          curl -fsSIL "$expected_zip_url" >/dev/null
+          curl -fsSL "${CHANGELOG_URL}?run=${GITHUB_RUN_ID}" >/dev/null
+
+          echo "Update chain verified: versionCode=${EXPECTED_VERSION_CODE}, commit=${EXPECTED_COMMIT}"

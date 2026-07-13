@@ -144,5 +144,19 @@ jobs:
               -f sha="$COMMIT_FULL_SHA" >/dev/null
           fi
 
-          actual_sha="$(gh api "$tag_ref" --jq '.object.sha')"
-          test "$actual_sha" = "$COMMIT_FULL_SHA"
+          actual_sha=""
+          for attempt in {1..30}; do
+            actual_sha="$(
+              gh api -H 'Cache-Control: no-cache' "$tag_ref" --jq '.object.sha' 2>/dev/null || true
+            )"
+            if [ "$actual_sha" = "$COMMIT_FULL_SHA" ]; then
+              break
+            fi
+            echo "Wait for ${RELEASE_TAG} to resolve to ${COMMIT_FULL_SHA} (${attempt}/30, current=${actual_sha:-missing})"
+            sleep 2
+          done
+
+          if [ "$actual_sha" != "$COMMIT_FULL_SHA" ]; then
+            echo "${RELEASE_TAG} still resolves to ${actual_sha:-missing}, expected ${COMMIT_FULL_SHA}" >&2
+            exit 1
+          fi
