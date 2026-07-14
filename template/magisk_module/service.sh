@@ -2,10 +2,28 @@
 
 MODDIR=${0%/*}
 
-LOG_FILE="$MODDIR/sui.log"
+SUI_DIR="/data/adb/sui"
+LOG_FILE="$SUI_DIR/sui.log"
 TAG="SuiDaemon"
 
+mkdir -p "$SUI_DIR" 2>/dev/null
+
+rotate_log_file() {
+    max_size=1048576
+
+    if [ ! -f "$LOG_FILE" ]; then
+        return
+    fi
+
+    log_size=$(wc -c < "$LOG_FILE" 2>/dev/null)
+    if [ -n "$log_size" ] && [ "$log_size" -gt "$max_size" ]; then
+        rm -f "$LOG_FILE.1" 2>/dev/null
+        mv "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null
+    fi
+}
+
 print_log() {
+    rotate_log_file
     echo "[$(date)] $1" >> "$LOG_FILE"
     log -p i -t "$TAG" "$1"
 }
