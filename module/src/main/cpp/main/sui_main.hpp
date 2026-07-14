@@ -231,6 +231,22 @@ static bool build_module_path(char* buffer, size_t buffer_size, const char* root
     return true;
 }
 
+static bool stage_shell_runtime_file(const char* src_path, const char* dst_path) {
+    if (copyfile(src_path, dst_path) != 0) {
+        PLOGE("copyfile %s -> %s", src_path, dst_path);
+        return false;
+    }
+    if (chmod(dst_path, 0644) != 0) {
+        PLOGE("chmod %s", dst_path);
+        return false;
+    }
+    if (chown(dst_path, 2000, 2000) != 0) {
+        PLOGE("chown %s", dst_path);
+        return false;
+    }
+    return true;
+}
+
 /*
  * argv[1]: path of the module, such as /data/adb/modules/zygisk-sui
  */
@@ -291,27 +307,24 @@ static int sui_main(int argc, char** argv) {
 
         char shell_dex_path[PATH_MAX];
         snprintf(shell_dex_path, PATH_MAX, "%s/sui.dex", shell_dir);
-        if (copyfile(dex_path, shell_dex_path) == 0) {
-            chmod(shell_dex_path, 0644);
-            chown(shell_dex_path, 2000, 2000);
+        if (!stage_shell_runtime_file(dex_path, shell_dex_path)) {
+            exit(EXIT_FAILURE);
         }
 
         char lib_path[PATH_MAX];
         snprintf(lib_path, PATH_MAX, "%s/librish.so", root_path);
         char shell_lib_path[PATH_MAX];
         snprintf(shell_lib_path, PATH_MAX, "%s/librish.so", shell_dir);
-        if (copyfile(lib_path, shell_lib_path) == 0) {
-            chmod(shell_lib_path, 0644);
-            chown(shell_lib_path, 2000, 2000);
+        if (!stage_shell_runtime_file(lib_path, shell_lib_path)) {
+            exit(EXIT_FAILURE);
         }
 
         char libsui_path[PATH_MAX];
         snprintf(libsui_path, PATH_MAX, "%s/libsui.so", root_path);
         char shell_libsui_path[PATH_MAX];
         snprintf(shell_libsui_path, PATH_MAX, "%s/libsui.so", shell_dir);
-        if (copyfile(libsui_path, shell_libsui_path) == 0) {
-            chmod(shell_libsui_path, 0644);
-            chown(shell_libsui_path, 2000, 2000);
+        if (!stage_shell_runtime_file(libsui_path, shell_libsui_path)) {
+            exit(EXIT_FAILURE);
         }
 
         // Set SELinux context to shell BEFORE dropping UID/GID (requires root privileges)

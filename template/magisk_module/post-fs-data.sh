@@ -2,45 +2,82 @@
 MODDIR=${0%/*}
 MODULE_ID=$(basename "$MODDIR")
 
-SUI_DIR="/data/system/sui"
+SUI_WORK_DIR="/data/system/sui"
 API_LEVEL=$(getprop ro.build.version.sdk)
+SUI_DIR="/data/adb/sui"
+SUI_LOG="$SUI_DIR/sui.log"
 
-if [ "$API_LEVEL" -lt 26 ] && [ -d "$SUI_DIR" ]; then
-    rm -rf "$SUI_DIR"
+mkdir -p "$SUI_DIR" 2>/dev/null
+
+rotate_log_file() {
+    log_file="$1"
+    max_size=1048576
+
+    if [ ! -f "$log_file" ]; then
+        return
+    fi
+
+    log_size=$(wc -c < "$log_file" 2>/dev/null)
+    if [ -n "$log_size" ] && [ "$log_size" -gt "$max_size" ]; then
+        rm -f "$log_file.1" 2>/dev/null
+        mv "$log_file" "$log_file.1" 2>/dev/null
+    fi
+}
+
+fix_oat_permissions_until_ready() {
+    attempts=0
+    max_attempts=180
+    settle_rounds=0
+    sleep_interval=1
+
+    while [ "$attempts" -lt "$max_attempts" ]; do
+        if [ -d "$SUI_WORK_DIR/oat" ]; then
+            chmod -R a+rX "$SUI_WORK_DIR/oat" 2>/dev/null
+            if find "$SUI_WORK_DIR/oat" -type f 2>/dev/null | read -r _; then
+                settle_rounds=$((settle_rounds + 1))
+                if [ "$settle_rounds" -ge 5 ]; then
+                    break
+                fi
+            fi
+        fi
+
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge 30 ]; then
+            sleep_interval=5
+        fi
+        sleep "$sleep_interval"
+    done
+}
+
+if [ "$API_LEVEL" -lt 26 ] && [ -d "$SUI_WORK_DIR" ]; then
+    rm -rf "$SUI_WORK_DIR"
 fi
 
 if [ "$API_LEVEL" -le 27 ]; then
-    mkdir -p "$SUI_DIR/oat"
-    chown -R 1000:1000 "$SUI_DIR"
-    chmod 771 "$SUI_DIR"
-    chmod 777 "$SUI_DIR/oat"
+    mkdir -p "$SUI_WORK_DIR/oat"
+    chown -R 1000:1000 "$SUI_WORK_DIR"
+    chmod 771 "$SUI_WORK_DIR"
+    chmod 777 "$SUI_WORK_DIR/oat"
 fi
 
 if [ "$API_LEVEL" -lt 26 ]; then
-    rm -f "$SUI_DIR/sui.dex"
-    cp "$MODDIR/sui.apk" "$SUI_DIR/sui.apk"
-    chmod 644 "$SUI_DIR/sui.apk"
+    rm -f "$SUI_WORK_DIR/sui.dex"
+    cp "$MODDIR/sui.apk" "$SUI_WORK_DIR/sui.apk"
+    chmod 644 "$SUI_WORK_DIR/sui.apk"
 
     if [ "$API_LEVEL" -le 23 ]; then
-        (
-            while true; do
-                if [ -d "$SUI_DIR/oat" ]; then
-                    chmod -R a+rX "$SUI_DIR/oat" 2>/dev/null
-                fi
-                sleep 0.1
-            done
-        ) &
+        fix_oat_permissions_until_ready &
     fi
 
-    restorecon -R "$SUI_DIR"
-    chcon -R u:object_r:system_data_file:s0 "$SUI_DIR"
+    restorecon -R "$SUI_WORK_DIR"
+    chcon -R u:object_r:system_data_file:s0 "$SUI_WORK_DIR"
 
 elif [ "$API_LEVEL" -le 27 ]; then
-    cp "$MODDIR/sui.dex" "$SUI_DIR/sui.dex"
-    chmod 644 "$SUI_DIR/sui.dex"
-    cp "$MODDIR/sui.apk" "$SUI_DIR/sui.apk"
-    chmod 644 "$SUI_DIR/sui.apk"
-    chcon -R u:object_r:system_file:s0 "$SUI_DIR"
+    cp "$MODDIR/sui.dex" "$SUI_WORK_DIR/sui.dex"
+    chmod 644 "$SUI_WORK_DIR/sui.dex"
+    cp "$MODDIR/sui.apk" "$SUI_WORK_DIR/sui.apk"
+    chmod 644 "$SUI_WORK_DIR/sui.apk"
+    chcon -R u:object_r:system_file:s0 "$SUI_WORK_DIR"
 fi
 
 if [ "$ZYGISK_ENABLED" = false ]; then
@@ -127,7 +164,8 @@ chmod 700 "$MODDIR"/bin/sui
 
 # define print_log
 print_log() {
-    echo "[$(date)] $1" >> "$MODDIR/sui.log"
+    rotate_log_file "$SUI_LOG"
+    echo "[$(date)] $1" >> "$SUI_LOG"
     log -p i -t "SuiDaemon" "$1"
 }
 
@@ -135,7 +173,7 @@ print_log() {
 print_log "Starting Sui native daemon..."
 
 # strat the sui daemon
-nohup "$MODDIR"/bin/sui "$MODDIR" "$adb_root_exit" >> "$MODDIR/sui.log" 2>&1 &
+nohup "$MODDIR"/bin/sui "$MODDIR" "$adb_root_exit" >> "$SUI_LOG" 2>&1 &
 
 print_log "Sui daemon launched with PID $!"
 
