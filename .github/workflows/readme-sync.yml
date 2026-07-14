@@ -26,12 +26,12 @@ jobs:
 
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@main
         with:
           persist-credentials: false
 
       - name: Checkout module repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@main
         with:
           repository: KernelSU-Modules-Repo/zygisk-sui
           token: ${{ secrets.KSU_REPO_TOKEN }}
