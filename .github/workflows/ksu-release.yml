@@ -72,6 +72,11 @@ jobs:
           set -euo pipefail
           test -n "${GH_TOKEN:-}"
 
+          tag_ref_exists() {
+            local tag="$1"
+            gh api "repos/${TARGET_REPO}/git/ref/tags/${tag}" >/dev/null 2>&1
+          }
+
           wait_for_release_cleanup() {
             local tag="$1"
             local attempt
@@ -84,7 +89,7 @@ jobs:
                 release_exists=true
               fi
 
-              if gh api "repos/${TARGET_REPO}/git/ref/tags/${tag}" >/dev/null 2>&1; then
+              if tag_ref_exists "$tag"; then
                 tag_exists=true
               fi
 
@@ -154,7 +159,7 @@ jobs:
               echo "Delete release ${RELEASE_TAG} (${RELEASE_ID})"
               gh api -X DELETE "repos/${TARGET_REPO}/releases/${RELEASE_ID}"
 
-              if gh api "repos/${TARGET_REPO}/git/refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+              if tag_ref_exists "$RELEASE_TAG"; then
                 echo "Delete tag ${RELEASE_TAG}"
                 gh api -X DELETE "repos/${TARGET_REPO}/git/refs/tags/${RELEASE_TAG}"
               fi
@@ -162,6 +167,12 @@ jobs:
               wait_for_release_cleanup "$RELEASE_TAG"
             done
           fi
+
+          mapfile -t EXISTING_TAGS < <(
+            gh api "repos/${TARGET_REPO}/git/matching-refs/tags/${COMMUNITY_TAG_PREFIX}" --jq '.[].ref' 2>/dev/null |
+            sed 's#refs/tags/##' |
+            sort -u
+          )
 
           if [ "${#EXISTING_TAGS[@]}" -gt 0 ]; then
             echo "Remove existing ${TARGET_REPO} tags for ${COMMUNITY_TAG_PREFIX}*"
@@ -173,7 +184,7 @@ jobs:
                 continue
               fi
 
-              if gh api "repos/${TARGET_REPO}/git/refs/tags/${EXISTING_TAG}" >/dev/null 2>&1; then
+              if tag_ref_exists "$EXISTING_TAG"; then
                 echo "Delete tag ${EXISTING_TAG}"
                 gh api -X DELETE "repos/${TARGET_REPO}/git/refs/tags/${EXISTING_TAG}"
               fi
