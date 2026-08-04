@@ -1,21 +1,18 @@
 # Nightly Build
 
 - **Version:** `v13.5.4.3`
-- **VersionCode:** `521`
+- **VersionCode:** `522`
 - **Release:** [nightly](https://github.com/ZQZCC/Sui/releases/tag/nightly)
-- **Download:** [Sui-v13.5.4.3_521-2edd288-release.zip](https://github.com/ZQZCC/Sui/releases/download/nightly/Sui-v13.5.4.3_521-2edd288-release.zip)
+- **Download:** [Sui-v13.5.4.3_522-a905afa-release.zip](https://github.com/ZQZCC/Sui/releases/download/nightly/Sui-v13.5.4.3_522-a905afa-release.zip)
 - **Update JSON:** [raw](https://raw.githubusercontent.com/ZQZCC/Sui/pages/sui_zygisk.json)
 - **GitHub Pages:** [sui_zygisk.json](https://zqzcc.github.io/Sui/sui_zygisk.json)
-- **Commit:** [`2edd288`](https://github.com/ZQZCC/Sui/commit/2edd28899790cfdb0745bacdb41a9d434a3a3c26)
-- **Build time:** `1m 49s`
-- **SHA256:** `a8e3dab3021c263b2cb01ee903dc28cf06a3619ef61ef1fbf6e3055eddcb4c02`
+- **Commit:** [`a905afa`](https://github.com/ZQZCC/Sui/commit/a905afa46581ba200a3d792feb0c0a4d84f28eb3)
+- **Build time:** `1m 52s`
+- **SHA256:** `9c4c0f43b885a0810948920ac33c40e77582d8a21054297411146333e5526ea6`
 
 ## Message
 
 ```text
-Merge remote-tracking branch 'upstream/main'
-
-# Conflicts:
-#	ui/src/main/java/rikka/sui/SuiActivity.java
+Merge remote-tracking branch 'refs/remotes/upstream/main'
 
 ```
