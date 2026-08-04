@@ -454,6 +454,7 @@ class ManagementScreen(
                 "binyaminyblatt" to "https://github.com/binyaminyblatt",
                 "Re*Index.(ot_inc)" to "https://github.com/reindex-ot",
                 "IshaParihariya" to "https://github.com/IshaParihariya",
+                "soralis0912" to "https://github.com/soralis0912",
             )
 
             val contributorsNamesString = githubLinks.keys.joinToString(", ")
