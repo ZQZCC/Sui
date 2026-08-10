@@ -1,18 +1,18 @@
 # Nightly Build
 
 - **Version:** `v13.5.4.3`
-- **VersionCode:** `525`
+- **VersionCode:** `526`
 - **Release:** [nightly](https://github.com/ZQZCC/Sui/releases/tag/nightly)
-- **Download:** [Sui-v13.5.4.3_525-f4863e1-release.zip](https://github.com/ZQZCC/Sui/releases/download/nightly/Sui-v13.5.4.3_525-f4863e1-release.zip)
+- **Download:** [Sui-v13.5.4.3_526-6288398-release.zip](https://github.com/ZQZCC/Sui/releases/download/nightly/Sui-v13.5.4.3_526-6288398-release.zip)
 - **Update JSON:** [raw](https://raw.githubusercontent.com/ZQZCC/Sui/pages/sui_zygisk.json)
 - **GitHub Pages:** [sui_zygisk.json](https://zqzcc.github.io/Sui/sui_zygisk.json)
-- **Commit:** [`f4863e1`](https://github.com/ZQZCC/Sui/commit/f4863e16aa6f6bcc867b1ce62be497630edd02d8)
-- **Build time:** `1m 12s`
-- **SHA256:** `78156174a7186cfe876154d43547b274904e8be3dd0b8b0cce763e09aede93d7`
+- **Commit:** [`6288398`](https://github.com/ZQZCC/Sui/commit/62883986da5e4e4f1cacd19463da3597b570e52f)
+- **Build time:** `3m 32s`
+- **SHA256:** `cf6b1809febc76a55ac9043fea710763fa13aeaad7f70fe0f46ba7e4d38c64a1`
 
 ## Message
 
 ```text
-revert(module): 撤回 shell server 成对生命周期管理
+Merge remote-tracking branch 'refs/remotes/upstream/main'
 
 ```
