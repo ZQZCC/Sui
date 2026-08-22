@@ -72,6 +72,10 @@ class ManagementController(context: Context) : Closeable {
         private set
 
     @Volatile
+    var isLegacyShizukuBinderCompatEnabled = false
+        private set
+
+    @Volatile
     var query: String? = null
         private set
 
@@ -168,6 +172,34 @@ class ManagementController(context: Context) : Closeable {
         }
     }
 
+    fun toggleLegacyShizukuBinderCompat(onResult: (Boolean) -> Unit) {
+        if (closed) return
+        val newState = !isLegacyShizukuBinderCompatEnabled
+
+        requestExecutor.execute {
+            val success = try {
+                synchronized(settingsLock) {
+                    val currentFlags = BridgeServiceClient.getGlobalSettings()
+                    val newFlags = if (newState) {
+                        currentFlags or BridgeServiceClient.FLAG_LEGACY_SHIZUKU_BINDER_COMPAT
+                    } else {
+                        currentFlags and BridgeServiceClient.FLAG_LEGACY_SHIZUKU_BINDER_COMPAT.inv()
+                    }
+                    BridgeServiceClient.setGlobalSettings(newFlags)
+                }
+            } catch (_: Throwable) {
+                false
+            }
+
+            stateHandler.post {
+                if (success) {
+                    isLegacyShizukuBinderCompatEnabled = newState
+                }
+                dispatchToMain { onResult(success) }
+            }
+        }
+    }
+
     fun batchUpdate(targetMode: Int) {
         if (closed) return
         requestExecutor.execute {
@@ -197,6 +229,8 @@ class ManagementController(context: Context) : Closeable {
                     val flags = BridgeServiceClient.getGlobalSettings()
                     val showOnly = (flags and BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS) != 0
                     val monetEnabled = (flags and BridgeServiceClient.FLAG_MONET_DISABLED) == 0
+                    val legacyCompatEnabled =
+                        (flags and BridgeServiceClient.FLAG_LEGACY_SHIZUKU_BINDER_COMPAT) != 0
                     val result = BridgeServiceClient.getApplications(-1, showOnly)
 
                     loadLabels(result)
@@ -208,6 +242,7 @@ class ManagementController(context: Context) : Closeable {
                         if (generation != reloadGeneration.get()) return@post
                         showOnlyShizukuApps = showOnly
                         isMonetEnabled = monetEnabled
+                        isLegacyShizukuBinderCompatEnabled = legacyCompatEnabled
                         fullList.clear()
                         fullList.addAll(result)
                         publish(Resource.success(buildDisplayList()))
