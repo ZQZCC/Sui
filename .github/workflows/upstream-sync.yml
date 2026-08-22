@@ -23,7 +23,7 @@ on:
         default: false
         type: boolean
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '23 0 * * *'
 
 concurrency:
   group: upstream-sync
@@ -91,13 +91,29 @@ jobs:
             exit 0
           fi
 
-          git merge --no-edit "${UPSTREAM_REF}"
+          if ! git merge --no-edit "${UPSTREAM_REF}"; then
+            if [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+              echo "merge_conflict=true" >> "$GITHUB_OUTPUT"
+              git merge --abort
+              echo "::error::Upstream merge has conflicts; disabling automatic sync."
+            fi
+            exit 1
+          fi
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "should_release=true" >> "$GITHUB_OUTPUT"
           echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
           echo "upstream_version_code=${UPSTREAM_VERSION_CODE}" >> "$GITHUB_OUTPUT"
           echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Disable automatic sync after merge conflict
+        if: ${{ failure() && steps.merge.outputs.merge_conflict == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow disable upstream-sync.yml --repo "${GITHUB_REPOSITORY}"
+          echo "Upstream Sync disabled after an unresolved merge conflict."
 
       - name: Push merged main
         if: ${{ steps.merge.outputs.changed == 'true' }}
