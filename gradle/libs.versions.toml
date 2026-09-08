@@ -14,7 +14,7 @@ fragment = "1.9.0"
 recyclerview = "1.4.0"
 dynamicanimation = "1.1.0"
 appiconloader = "1.5.0"
-spotless = "8.10.1"
+spotless = "8.10.2"
 support-annotations = "28.0.0"
 
 [libraries]
